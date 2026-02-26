@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@fontsource-variable/noto-sans-hebrew";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -121,4 +122,8 @@
   body {
     @apply bg-background text-foreground;
     }
+}
+
+@theme inline {
+    --font-sans: "Noto Sans Hebrew Variable", sans-serif;
 }
