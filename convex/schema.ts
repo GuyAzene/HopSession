@@ -6,31 +6,37 @@ const schema = defineSchema({
     ...authTables,
 
     events: defineTable({
-        name: v.string(), // למשל: "טעימות חמישי בערב"
-        date: v.number(), // נשמור כ-Timestamp כדי שיהיה קל למיין
-        ownerId: v.id("users"), // מי פתח את האירוע
-        participants: v.array(v.id("users")), // כל מי שיושב בשולחן
-        isSettled: v.boolean(), // האם החשבון כבר חולק ונסגר?
+        name: v.string(),
+        date: v.number(),
+        ownerId: v.id("users"),
+        isSettled: v.boolean(),
+        // הסרנו את participants! במקום זה נשתמש בטבלה למטה
     }),
 
-    drinks: defineTable({
-        eventId: v.id("events"), // לאיזה אירוע הבירה שייכת
-        payerId: v.id("users"), // מי קנה/שילם על הבירה
-        name: v.string(), // שם הבירה
-        price: v.number(), // כמה היא עלתה
-
-        // מי שתה בפועל? (כדי שנוכל לחלק את המחיר של הבירה הזו רק ביניהם)
-        consumers: v.array(v.id("users")),
-
-        // --- פרטים נוספים (אופציונליים) ---
-        style: v.optional(v.string()), // סוג (IPA, Stout, Sour...)
-        abv: v.optional(v.number()), // אחוז אלכוהול
-        flavors: v.optional(v.array(v.string())), // תגיות טעם
-        untappdLink: v.optional(v.string()), // לינק
+    // --- הטבלה החדשה שלנו: משתתפי המפגש ---
+    eventParticipants: defineTable({
+        eventId: v.id("events"),
+        userId: v.id("users"),
     })
-        // אנחנו מוסיפים אינדקס כדי שהשליפה של כל הבירות לאירוע ספציפי תהיה סופר מהירה
-        .index("by_event", ["eventId"]),
+        // אינדקס שמאפשר לשלוף בשניה את כל המפגשים של משתמש ספציפי (לעמוד הראשי)
+        .index("by_user", ["userId"])
+        // אינדקס שמאפשר לשלוף בשניה את כל המשתתפים של מפגש ספציפי (לעמוד המפגש)
+        .index("by_event", ["eventId"])
+        // אינדקס שמונע מהמשתמש להצטרף פעמיים לאותו מפגש
+        .index("by_event_and_user", ["eventId", "userId"]),
 
+    drinks: defineTable({
+        eventId: v.id("events"),
+        payerId: v.id("users"),
+        name: v.string(),
+        price: v.number(),
+        consumers: v.array(v.id("users")),
+        style: v.optional(v.string()),
+        abv: v.optional(v.number()),
+        flavors: v.optional(v.array(v.string())),
+        untappdLink: v.optional(v.string()),
+    })
+        .index("by_event", ["eventId"]),
 });
 
 export default schema;
