@@ -22,7 +22,14 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
     const { signOut } = useAuthActions();
-    const initials = user.name ? user.name.substring(0, 2).toUpperCase() : "🍻";
+    const initials = user.name
+        ? user.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .substring(0, 2)
+            .toUpperCase()
+        : "🍻";
 
     return (
         // עטפנו את הכל ב-div שמחזיק גם את השם וגם את האווטאר
@@ -35,7 +42,7 @@ export function UserMenu({ user }: UserMenuProps) {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
                         <Avatar>
-                            <AvatarImage src={user.pictureUrl} alt={user.name ?? "User"} />
+                            <AvatarImage src={user.image} alt={user.name ?? "User"} />
                             <AvatarFallback className="bg-orange-100 text-orange-900 font-bold">
                                 {initials}
                             </AvatarFallback>

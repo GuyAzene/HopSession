@@ -1,22 +1,19 @@
-import {useQuery} from "convex/react";
-import {api} from "../../convex/_generated/api";
-import {Navbar} from "@/components/navbar.tsx";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Navbar } from "@/components/navbar";
+import { EventsFeed } from "@/components/events-feed";
 
 export function Dashboard() {
-    // שולפים את המשתמש שלנו מהשרת
     const user = useQuery(api.users.current);
 
-    // מייצרים ראשי תיבות לשים באווטאר במקרה שאין תמונה
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-slate-50/50">
             {/* תפריט עליון (Navbar) */}
             <Navbar user={user} />
 
-            {/* אזור התוכן המרכזי שבו נשים את הבירות */}
+            {/* אזור התוכן המרכזי */}
             <main className="flex-1 p-4">
-                <div className="max-w-4xl mx-auto mt-12 text-center text-neutral-500">
-                    <p className="text-lg">כאן יופיעו האירועים והבירות שלנו בקרוב!</p>
-                </div>
+                <EventsFeed user={user} />
             </main>
         </div>
     );
