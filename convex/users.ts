@@ -1,5 +1,6 @@
-import { query } from "./_generated/server";
+import {mutation, query} from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import {v} from "convex/values";
 
 export const current = query({
     args: {},
@@ -13,5 +14,21 @@ export const current = query({
 
         // 2. שולפים את המסמך *האמיתי* של המשתמש ממסד הנתונים!
         return await ctx.db.get(userId);
+    },
+});
+
+export const updateProfile = mutation({
+    args: {
+        name: v.string(),
+        phone: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (userId === null) throw new Error("לא מחובר");
+
+        await ctx.db.patch(userId, {
+            name: args.name,
+            phone: args.phone,
+        });
     },
 });

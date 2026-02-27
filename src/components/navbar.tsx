@@ -10,8 +10,8 @@ interface NavbarProps {
 
 export function Navbar({ user }: NavbarProps) {
     return (
-        <header className="flex items-center justify-between p-4 bg-white/40 backdrop-blur-md border-b border-orange-200/50">
-            <h1 className="text-2xl font-black tracking-tight">HopSession</h1>
+        <header className="sticky top-0 z-50 flex items-center justify-between p-4 bg-brand-surface border-b border-brand-text/10 shadow-sm">
+            <h1 className="text-2xl font-black tracking-tight text-brand-text">HopSession</h1>
             {user && <UserMenu user={user} />}
         </header>
     );

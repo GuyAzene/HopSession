@@ -42,13 +42,11 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
     const [eventName, setEventName] = useState("");
     const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
 
-    // סטייט לשליטה על המודל (פתוח/סגור) ועל מצב טעינה
     const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isLoading = user === undefined;
 
-    // מביאים את הפונקציה שיצרנו עכשיו בשרת
     const createEvent = useMutation(api.events.create);
 
     const handleSubmit = async () => {
@@ -56,20 +54,17 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
 
         setIsSubmitting(true);
         try {
-            // קוראים לשרת ושומרים!
             await createEvent({
                 name: eventName,
                 date: eventDate.getTime(),
             });
 
-            // אם הצלחנו: מנקים את הטופס וסוגרים את המודל
             setEventName("");
             setEventDate(new Date());
             setIsOpen(false);
 
         } catch (error) {
             console.error("Failed to create event:", error);
-            // פה בעתיד נוכל להוסיף הודעת שגיאה יפה למשתמש
         } finally {
             setIsSubmitting(false);
         }
@@ -78,16 +73,17 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button disabled={isLoading} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white rounded-full px-6">
+                {/* כפתור הטריגר: רקע כהה, טקסט שמנת */}
+                <Button disabled={isLoading} className="gap-2 bg-brand-text text-brand-bg hover:bg-brand-text/90 rounded-full px-6">
                     <PlusCircle className="h-5 w-5" />
                     <span>מפגש חדש</span>
                 </Button>
             </DialogTrigger>
 
-            <DialogContent dir="rtl" className="sm:max-w-106.25">
-                <DialogHeader>
-                    <DialogTitle className="text-xl">יצירת מפגש טעימות</DialogTitle>
-                    <DialogDescription>
+            {/* תוכן המודל: רקע שמנת, גבול עדין */}
+            <DialogContent dir="rtl" className="sm:max-w-106.25 bg-brand-surface border-brand-text/10 shadow-lg">                <DialogHeader>
+                    <DialogTitle className="text-xl text-brand-text">יצירת מפגש טעימות</DialogTitle>
+                    <DialogDescription className="text-brand-text/60">
                         הכנס את פרטי המפגש. תוכל להוסיף בירות ומשתתפים לאחר מכן.
                     </DialogDescription>
                 </DialogHeader>
@@ -95,7 +91,7 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                 <div className="py-4">
                     <FieldGroup className="flex flex-col gap-6">
                         <Field>
-                            <FieldLabel htmlFor="eventName">שם המפגש</FieldLabel>
+                            <FieldLabel htmlFor="eventName" className="text-brand-text">שם המפגש</FieldLabel>
                             <Input
                                 id="eventName"
                                 name="eventName"
@@ -104,32 +100,40 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                                 placeholder="לדוגמה: טעימות IPA חמישי בערב..."
                                 value={eventName}
                                 onChange={(e) => setEventName(e.target.value)}
+                                // עיצוב ה-Input לפלטה החדשה
+                                className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text placeholder:text-brand-text/40"
                             />
-                            <FieldDescription>שם שיעזור לכולם לזהות את האירוע.</FieldDescription>
+                            <FieldDescription className="text-brand-text/60">שם שיעזור לכולם לזהות את האירוע.</FieldDescription>
                         </Field>
 
                         <Field>
-                            <FieldLabel>תאריך המפגש</FieldLabel>
+                            <FieldLabel className="text-brand-text">תאריך המפגש</FieldLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
                                         className={cn(
-                                            "w-full justify-start text-right font-normal",
-                                            !eventDate && "text-muted-foreground"
+                                            "w-full justify-start text-right font-normal border-brand-text/20 hover:bg-brand-text/5",
+                                            // הוספת צבע הרקע המדויק כאן
+                                            "bg-brand-surface",
+                                            !eventDate ? "text-brand-text/50" : "text-brand-text"
                                         )}
                                     >
                                         <CalendarIcon className="ml-2 h-4 w-4" />
                                         {eventDate ? format(eventDate, "PPP", { locale: he }) : <span>בחר תאריך</span>}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
+                                <PopoverContent
+                                    align="start"
+                                    className="w-auto p-0 border-brand-text/10 bg-brand-surface shadow-xl"
+                                >
                                     <Calendar
                                         mode="single"
                                         selected={eventDate}
                                         onSelect={setEventDate}
                                         locale={he}
                                         dir="rtl"
+                                        className="bg-brand-surface rounded-md"
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -138,10 +142,11 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                 </div>
 
                 <DialogFooter>
+                    {/* כפתור אישור: רקע כהה, טקסט שמנת */}
                     <Button
                         disabled={!eventName.trim() || !eventDate || isSubmitting}
                         onClick={handleSubmit}
-                        className="bg-orange-600 hover:bg-orange-700 w-full sm:w-auto"
+                        className="bg-brand-text text-brand-bg hover:bg-brand-text/90 w-full sm:w-auto"
                     >
                         {isSubmitting ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

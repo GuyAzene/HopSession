@@ -10,21 +10,23 @@ import {
 import type {Doc} from "../../convex/_generated/dataModel";
 
 interface EventCardProps {
-    event: Doc<"events">; // טייפסקריפט יודע אוטומטית שיש פה name, date, etc...
+    event: Doc<"events">;
 }
 
 export function EventCard({ event }: EventCardProps) {
     return (
-        <Card dir="rtl" className="w-full hover:border-orange-300 transition-colors">
+        <Card
+            dir="rtl"
+            className="w-full bg-brand-surface border-brand-text/10 hover:border-brand-text/30 transition-colors shadow-sm"
+        >
             <CardHeader>
-                <CardTitle>{event.name}</CardTitle>
-                <CardDescription>
-                    {/* ממירים את המספר מהדאטה-בייס לתאריך יפה בעברית */}
+                <CardTitle className="text-brand-text">{event.name}</CardTitle>
+                <CardDescription className="text-brand-text/60">
                     {format(new Date(event.date), "PPP", { locale: he })}
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-brand-text/50">
                     עיצוב מלא ומידע על משתתפים/בירות יגיעו בקרוב... 🍻
                 </p>
             </CardContent>

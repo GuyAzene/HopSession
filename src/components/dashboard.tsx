@@ -7,7 +7,7 @@ export function Dashboard() {
     const user = useQuery(api.users.current);
 
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50/50">
+        <div className="min-h-screen flex flex-col">
             {/* תפריט עליון (Navbar) */}
             <Navbar user={user} />
 
