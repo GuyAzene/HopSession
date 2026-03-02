@@ -6,7 +6,7 @@ export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
     Google,
     Resend({
-      from: "HopSession 🍻 <auth@hopsession.azene.co>"
+      from: "HopSession 🍻 <auth@hopsession.cc>"
     })
   ],
 });
