@@ -1,11 +1,20 @@
+import React, { Suspense } from 'react'
 import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { useConvexAuth, useQuery } from "convex/react"
 
 // ייבוא הקומפוננטות שלך וה-API
 import { api } from "../../convex/_generated/api"
 import { WelcomeScreen } from "@/components/welcome-screen"
 import { Navbar } from "@/components/navbar"
+
+// טוען את ה-Devtools רק אם אנחנו לא בסביבת פרודקשן (חוסך המון משקל מהקוד החי!)
+const TanStackRouterDevtools = import.meta.env.PROD
+    ? () => null // בפרודקשן - אל תרנדר כלום
+    : React.lazy(() =>
+        import('@tanstack/router-devtools').then((res) => ({
+            default: res.TanStackRouterDevtools,
+        }))
+    )
 
 export const Route = createRootRoute({
     component: RootComponent,
@@ -44,8 +53,10 @@ function RootComponent() {
                 <Outlet />
             </main>
 
-            {/* כלי הפיתוח של הראוטר (מופיעים רק ב-dev) */}
-            <TanStackRouterDevtools position="bottom-right" />
+            {/* כלי הפיתוח של הראוטר (מופיעים רק ב-dev ונטענים בעצלות) */}
+            <Suspense fallback={null}>
+                <TanStackRouterDevtools position="bottom-right" />
+            </Suspense>
         </div>
     )
 }
