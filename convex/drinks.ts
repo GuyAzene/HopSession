@@ -7,7 +7,7 @@ export const scrapeUntappdBeer = action({
     args: {
         untappdUrl: v.string(),
     },
-    handler: async (ctx, args) => {
+    handler: async (_ctx, args) => {
         // --- 1. משיכת ה-HTML דרך Firecrawl (טוקן 1 בלבד) ---
         const apiUrl = 'https://api.firecrawl.dev/v2/scrape';
         const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
@@ -87,7 +87,7 @@ export const scrapeUntappdBeer = action({
                 beerImageURL
             };
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Cheerio parsing failed:", error);
             throw new Error("Failed to parse beer HTML structure. Untappd might have changed their DOM.");
         }
@@ -114,7 +114,7 @@ export const addDrink = mutation({
         }
 
         // 2. שמירת הבירה במסד הנתונים
-        const drinkId = await ctx.db.insert("drinks", {
+        return await ctx.db.insert("drinks", {
             eventId: args.eventId,
             payerId: userId, // אנחנו כבר מקבלים Id<"users"> נקי
             beerName: args.beerName,
@@ -128,7 +128,6 @@ export const addDrink = mutation({
             consumers: [userId], // מי שקנה הוא אוטומטית הטועם הראשון
         });
 
-        return drinkId;
     }
 });
 
