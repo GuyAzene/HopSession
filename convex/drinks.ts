@@ -1,6 +1,7 @@
-import { action } from "./_generated/server";
+import {action, mutation, query} from "./_generated/server";
 import { v } from "convex/values";
 import * as cheerio from 'cheerio';
+import {getAuthUserId} from "@convex-dev/auth/server";
 
 export const scrapeUntappdBeer = action({
     args: {
@@ -90,5 +91,54 @@ export const scrapeUntappdBeer = action({
             console.error("Cheerio parsing failed:", error);
             throw new Error("Failed to parse beer HTML structure. Untappd might have changed their DOM.");
         }
+    }
+});
+
+export const addDrink = mutation({
+    args: {
+        eventId: v.id("events"),
+        beerName: v.string(),
+        breweryName: v.optional(v.string()),
+        price: v.number(),
+        abv: v.optional(v.number()),
+        rating: v.optional(v.number()),
+        style: v.optional(v.string()),
+        beerImageURL: v.optional(v.string()),
+        untappdLink: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        // 1. קבלת מזהה המשתמש ישירות מ-Convex Auth
+        const userId = await getAuthUserId(ctx);
+        if (!userId) {
+            throw new Error("You must be logged in to add a drink");
+        }
+
+        // 2. שמירת הבירה במסד הנתונים
+        const drinkId = await ctx.db.insert("drinks", {
+            eventId: args.eventId,
+            payerId: userId, // אנחנו כבר מקבלים Id<"users"> נקי
+            beerName: args.beerName,
+            breweryName: args.breweryName,
+            price: args.price,
+            abv: args.abv,
+            rating: args.rating,
+            style: args.style,
+            beerImageURL: args.beerImageURL,
+            untappdLink: args.untappdLink,
+            consumers: [userId], // מי שקנה הוא אוטומטית הטועם הראשון
+        });
+
+        return drinkId;
+    }
+});
+
+export const getDrinksByEvent = query({
+    args: { eventId: v.id("events") },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("drinks")
+            .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+            .order("desc") // נציג את הבירות החדשות ביותר למעלה
+            .collect();
     }
 });

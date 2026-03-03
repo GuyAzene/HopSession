@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
-import { Loader2, Beer, Receipt } from "lucide-react" // הוספנו אייקונים
-import { ScrollArea } from "@/components/ui/scroll-area" // הייבוא החדש
+import { Loader2, Beer, Receipt, Plus } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { BeerCard } from "@/components/beer-card"
-import {DebtRow} from "@/components/debt-row";
+import { DebtRow } from "@/components/debt-row"
+import { Button } from "@/components/ui/button"
+import { AddDrinkDialog } from "@/components/add-drink-dialog"
 
 export const Route = createFileRoute('/event/$eventId')({
     component: RouteComponent,
@@ -14,11 +17,21 @@ export const Route = createFileRoute('/event/$eventId')({
 function RouteComponent() {
     const { eventId } = Route.useParams()
 
+    // ניהול הסטייט של המודל
+    const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false)
+
+    // שליפת פרטי האירוע
     const event = useQuery(api.events.getEvent, {
         eventId: eventId as Id<"events">
     })
 
-    if (event === undefined) {
+    // שליפת המשקאות של האירוע
+    const drinks = useQuery(api.drinks.getDrinksByEvent, {
+        eventId: eventId as Id<"events">
+    })
+
+    // מוודא שגם האירוע וגם המשקאות נטענו לפני הרינדור
+    if (event === undefined || drinks === undefined) {
         return (
             <div className="flex justify-center mt-20">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-text/50" />
@@ -51,26 +64,46 @@ function RouteComponent() {
 
                 {/* --- אזור 1: רשימת הבירות (תופס 2 עמודות) --- */}
                 <div className="lg:col-span-2 flex flex-col gap-4">
-                    <div className="flex items-center gap-2 border-b border-brand-text/10 pb-2">
-                        <Beer className="h-6 w-6 text-brand-text" />
-                        <h3 className="text-2xl font-bold text-brand-text">תפריט הטעימות</h3>
+
+                    {/* כותרת רשימת הבירות + כפתור הוספה (flex-between) */}
+                    <div className="flex items-center justify-between border-b border-brand-text/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Beer className="h-6 w-6 text-brand-text" />
+                            <h3 className="text-2xl font-bold text-brand-text">תפריט הטעימות</h3>
+                        </div>
+
+                        <Button
+                            onClick={() => setIsAddDrinkOpen(true)}
+                            size="sm"
+                            className="bg-brand-text text-brand-bg hover:bg-brand-text/90 flex items-center gap-1.5"
+                        >
+                            <Plus className="h-4 w-4" />
+                            הוסף בירה
+                        </Button>
                     </div>
 
-                    {/* Scroll Area: הגבלנו גובה כדי שלא ידחוף את העמוד עד אינסוף */}
+                    {/* Scroll Area */}
                     <ScrollArea className="h-150 rounded-2xl border border-brand-text/10 bg-brand-surface p-6 shadow-sm" dir="rtl">
-                        <div className="flex flex-col gap-4 pr-4">
+                        {/* שינינו מ-pr-4 ל-pl-5 כדי לתת מקום לפס הגלילה בצד שמאל */}
+                        <div className="flex flex-col gap-4 pl-5">
 
-                            {/* פלייסחולדרים לבירות (נחליף בנתונים אמיתיים בהמשך) */}
-                            {[1, 2, 3, 4, 5, 6, 7, 8 ,9, 10].map((i) => (
-                                <BeerCard key={i} index={i}/>
-                            ))}
+                            {/* רינדור רשימת הבירות או מצב ריק */}
+                            {drinks.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center text-center py-20 gap-4 opacity-50">
+                                    <Beer className="h-12 w-12 text-brand-text/50" />
+                                    <p className="text-brand-text font-medium">עדיין לא הוספתם בירות למפגש.<br/>זה הזמן להתחיל!</p>
+                                </div>
+                            ) : (
+                                drinks.map((drink) => (
+                                    <BeerCard key={drink._id} beer={drink} />
+                                ))
+                            )}
 
                         </div>
                     </ScrollArea>
                 </div>
 
                 {/* --- אזור 2: סיידבאר התחשבנות (תופס עמודה 1) --- */}
-                {/* ה-sticky top-24 גורם לו להישאר על המסך גם אם גוללים למטה בטעות */}
                 <div className="flex flex-col gap-4 sticky top-24">
                     <div className="flex items-center gap-2 border-b border-brand-text/10 pb-2">
                         <Receipt className="h-6 w-6 text-brand-text" />
@@ -80,7 +113,6 @@ function RouteComponent() {
                     <div className="rounded-2xl border border-brand-text/10 bg-brand-surface p-6 shadow-sm flex flex-col gap-4">
                         <p className="text-brand-text/60 text-sm">סיכום ביניים של ההוצאות והחובות למפגש זה.</p>
 
-                        {/* פלייסחולדרים לחובות */}
                         <div className="flex flex-col gap-3 mt-2">
                             <DebtRow variant="owed" person="יוסי משלם לך" amount={17} />
                             <DebtRow variant="owing" person="אתה משלם לדני" amount={23} />
@@ -89,6 +121,13 @@ function RouteComponent() {
                 </div>
 
             </div>
+
+            {/* הוספת המודל שייפתח בלחיצה על הכפתור */}
+            <AddDrinkDialog
+                eventId={eventId as Id<"events">}
+                isOpen={isAddDrinkOpen}
+                onClose={() => setIsAddDrinkOpen(false)}
+            />
         </div>
     )
 }
