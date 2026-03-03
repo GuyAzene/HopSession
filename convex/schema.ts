@@ -26,15 +26,17 @@ const schema = defineSchema({
         .index("by_event_and_user", ["eventId", "userId"]),
 
     drinks: defineTable({
-        eventId: v.id("events"),
-        payerId: v.id("users"),
-        name: v.string(),
-        price: v.number(),
-        consumers: v.array(v.id("users")),
-        style: v.optional(v.string()),
-        abv: v.optional(v.number()),
-        flavors: v.optional(v.array(v.string())),
-        untappdLink: v.optional(v.string()),
+        eventId: v.id("events"),               //auto added
+        payerId: v.id("users"),                //auto added
+        beerName: v.string(),                            //manually/untapped added
+        breweryName: v.optional(v.string()),             //manually/untapped added
+        abv: v.optional(v.number()),                     //manually/untapped added
+        rating: v.optional(v.number()),                  //untapped added
+        style: v.optional(v.string()),                   //manually/untapped added
+        beerImageURL: v.optional(v.string()),            //untapped added
+        untappdLink: v.optional(v.string()),             //untapped added
+        price: v.number(),                               //manually added
+        consumers: v.array(v.id("users")),    //auto added
     })
         .index("by_event", ["eventId"]),
 });

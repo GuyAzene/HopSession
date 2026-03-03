@@ -56,3 +56,37 @@ export const getMyEvents = query({
             .sort((a, b) => b!.date - a!.date);
     },
 });
+
+export const getEvent = query({
+    args: {
+        eventId: v.id("events"),
+    },
+    handler: async (ctx, args) => {
+        // 1. אימות משתמש
+        const userId = await getAuthUserId(ctx);
+        if (userId === null) {
+            throw new Error("חובה להתחבר");
+        }
+
+        // 2. שליפת האירוע
+        const event = await ctx.db.get(args.eventId);
+        if (!event) {
+            throw new Error("האירוע לא נמצא או שנמחק");
+        }
+
+        // 3. בדיקת הרשאות מול טבלת המשתתפים באמצעות האינדקס המורכב
+        const isParticipant = await ctx.db
+            .query("eventParticipants")
+            .withIndex("by_event_and_user", (q) =>
+                q.eq("eventId", args.eventId).eq("userId", userId)
+            )
+            .first();
+
+        // אם המשתמש לא מופיע בטבלת המשתתפים (וגם לא הבעלים, ליתר ביטחון)
+        if (!isParticipant && event.ownerId !== userId) {
+            throw new Error("אין לך הרשאה לצפות בסשן הזה 🛑");
+        }
+
+        return event;
+    }
+});

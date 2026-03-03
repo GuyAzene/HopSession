@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
-import { Calendar as CalendarIcon, PlusCircle, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, PlusCircle, Loader2, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
     FieldDescription,
 } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
+import { combineDateAndTime } from "@/lib/dates"; // הייבוא החדש שלנו!
 
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -41,6 +42,10 @@ interface CreateEventDialogProps {
 export function CreateEventDialog({ user }: CreateEventDialogProps) {
     const [eventName, setEventName] = useState("");
     const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
+    const [eventTime, setEventTime] = useState("20:30");
+
+    // הסטייט החדש לשגיאות
+    const [error, setError] = useState<string | null>(null);
 
     const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,21 +55,30 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
     const createEvent = useMutation(api.events.create);
 
     const handleSubmit = async () => {
-        if (!eventDate || !eventName.trim()) return;
+        if (!eventDate || !eventName.trim() || !eventTime) return;
 
         setIsSubmitting(true);
+        setError(null); // איפוס שגיאות קודמות
+
         try {
+            // הקוד נראה עכשיו הרבה יותר נקי וקריא
+            const finalDateTime = combineDateAndTime(eventDate, eventTime);
+
             await createEvent({
                 name: eventName,
-                date: eventDate.getTime(),
+                date: finalDateTime.getTime(),
             });
 
+            // איפוס טופס אחרי הצלחה
             setEventName("");
             setEventDate(new Date());
+            setEventTime("20:30");
             setIsOpen(false);
 
-        } catch (error) {
-            console.error("Failed to create event:", error);
+        } catch (err) {
+            console.error("Failed to create event:", err);
+            // הצגת שגיאה ידידותית למשתמש
+            setError("אופס, משהו השתבש ביצירת המפגש. נסה שוב.");
         } finally {
             setIsSubmitting(false);
         }
@@ -73,15 +87,14 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                {/* כפתור הטריגר: רקע כהה, טקסט שמנת */}
                 <Button disabled={isLoading} className="gap-2 bg-brand-text text-brand-bg hover:bg-brand-text/90 rounded-full px-6">
                     <PlusCircle className="h-5 w-5" />
                     <span>מפגש חדש</span>
                 </Button>
             </DialogTrigger>
 
-            {/* תוכן המודל: רקע שמנת, גבול עדין */}
-            <DialogContent dir="rtl" className="sm:max-w-106.25 bg-brand-surface border-brand-text/10 shadow-lg">                <DialogHeader>
+            <DialogContent dir="rtl" className="sm:max-w-[425px] bg-brand-surface border-brand-text/10 shadow-lg">
+                <DialogHeader>
                     <DialogTitle className="text-xl text-brand-text">יצירת מפגש טעימות</DialogTitle>
                     <DialogDescription className="text-brand-text/60">
                         הכנס את פרטי המפגש. תוכל להוסיף בירות ומשתתפים לאחר מכן.
@@ -100,51 +113,73 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                                 placeholder="לדוגמה: טעימות IPA חמישי בערב..."
                                 value={eventName}
                                 onChange={(e) => setEventName(e.target.value)}
-                                // עיצוב ה-Input לפלטה החדשה
                                 className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text placeholder:text-brand-text/40"
                             />
                             <FieldDescription className="text-brand-text/60">שם שיעזור לכולם לזהות את האירוע.</FieldDescription>
                         </Field>
 
-                        <Field>
-                            <FieldLabel className="text-brand-text">תאריך המפגש</FieldLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className={cn(
-                                            "w-full justify-start text-right font-normal border-brand-text/20 hover:bg-brand-text/5",
-                                            // הוספת צבע הרקע המדויק כאן
-                                            "bg-brand-surface",
-                                            !eventDate ? "text-brand-text/50" : "text-brand-text"
-                                        )}
+                        <div className="flex flex-row justify-between gap-4">
+                            <Field className="flex-1">
+                                <FieldLabel className="text-brand-text">תאריך</FieldLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                "w-full justify-start text-right font-normal border-brand-text/20 hover:bg-brand-text/5",
+                                                "bg-brand-surface",
+                                                !eventDate ? "text-brand-text/50" : "text-brand-text"
+                                            )}
+                                        >
+                                            <CalendarIcon className="ml-2 h-4 w-4" />
+                                            {eventDate ? format(eventDate, "PPP", { locale: he }) : <span>בחר תאריך</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        align="start"
+                                        className="w-auto p-0 border-brand-text/10 bg-brand-surface shadow-xl"
                                     >
-                                        <CalendarIcon className="ml-2 h-4 w-4" />
-                                        {eventDate ? format(eventDate, "PPP", { locale: he }) : <span>בחר תאריך</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                    align="start"
-                                    className="w-auto p-0 border-brand-text/10 bg-brand-surface shadow-xl"
-                                >
-                                    <Calendar
-                                        mode="single"
-                                        selected={eventDate}
-                                        onSelect={setEventDate}
-                                        locale={he}
-                                        dir="rtl"
-                                        className="bg-brand-surface rounded-md"
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </Field>
+                                        <Calendar
+                                            mode="single"
+                                            selected={eventDate}
+                                            onSelect={setEventDate}
+                                            locale={he}
+                                            dir="rtl"
+                                            className="bg-brand-surface rounded-md"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </Field>
+
+                            {/* כיווצנו את הרוחב ל-24 (96px) והוספנו shrink-0 כדי לשמור על הפרופורציה */}
+                            <Field className="w-24 shrink-0">
+                                <FieldLabel htmlFor="eventTime" className="text-brand-text text-center">שעה</FieldLabel>
+                                <Input
+                                    type="time"
+                                    id="eventTime"
+                                    step="900"
+                                    value={eventTime}
+                                    onChange={(e) => setEventTime(e.target.value)}
+                                    dir="ltr"
+                                    // הכנסנו את העיצוב החדש והממורכז שלך + פדינג קטן שיישב יפה
+                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center px-2"
+                                />
+                            </Field>
+                        </div>
                     </FieldGroup>
                 </div>
 
+                {/* הצגת הודעת שגיאה במקרה של כישלון */}
+                {error && (
+                    <div className="px-4 py-3 text-sm text-brand-error bg-brand-error/10 border border-brand-error/20 rounded-md flex items-center gap-2 mb-4">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <p>{error}</p>
+                    </div>
+                )}
+
                 <DialogFooter>
-                    {/* כפתור אישור: רקע כהה, טקסט שמנת */}
                     <Button
-                        disabled={!eventName.trim() || !eventDate || isSubmitting}
+                        disabled={!eventName.trim() || !eventDate || !eventTime || isSubmitting}
                         onClick={handleSubmit}
                         className="bg-brand-text text-brand-bg hover:bg-brand-text/90 w-full sm:w-auto"
                     >
