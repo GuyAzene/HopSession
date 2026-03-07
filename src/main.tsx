@@ -13,7 +13,7 @@ import "./index.css";
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 // 2. יצירת ה-Router Instance
-const router = createRouter({ routeTree });
+export const router = createRouter({ routeTree });
 
 // 3. חיבור ה-Router ל-TypeScript (בשביל Type-safety בקישורים)
 declare module '@tanstack/react-router' {
