@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as drinks from "../drinks.js";
 import type * as events from "../events.js";
+import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
 import type * as users from "../users.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   drinks: typeof drinks;
   events: typeof events;
+  helpers: typeof helpers;
   http: typeof http;
   users: typeof users;
 }>;

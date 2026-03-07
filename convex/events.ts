@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAuth } from "./helpers";
 
 // 1. מוטציית היצירה המעודכנת
 export const create = mutation({
@@ -9,8 +10,7 @@ export const create = mutation({
         date: v.number(),
     },
     handler: async (ctx, args) => {
-        const userId = await getAuthUserId(ctx);
-        if (userId === null) throw new Error("חובה להתחבר");
+        const userId = await requireAuth(ctx);
 
         // שומרים את האירוע (בלי מערך participants)
         const eventId = await ctx.db.insert("events", {
@@ -64,10 +64,7 @@ export const getEvent = query({
     },
     handler: async (ctx, args) => {
         // 1. אימות משתמש
-        const userId = await getAuthUserId(ctx);
-        if (userId === null) {
-            throw new Error("חובה להתחבר");
-        }
+        const userId = await requireAuth(ctx);
 
         // 2. שליפת האירוע — return null for not-found instead of throwing
         const event = await ctx.db.get(args.eventId);

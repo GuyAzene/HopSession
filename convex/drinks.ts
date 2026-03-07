@@ -1,7 +1,7 @@
 import {action, mutation, query} from "./_generated/server";
 import { v } from "convex/values";
 import * as cheerio from 'cheerio';
-import {getAuthUserId} from "@convex-dev/auth/server";
+import { requireAuth, requireEventAccess } from "./helpers";
 
 export const scrapeUntappdBeer = action({
     args: {
@@ -9,8 +9,7 @@ export const scrapeUntappdBeer = action({
     },
     handler: async (ctx, args) => {
         // Auth check — prevents unauthenticated callers from burning Firecrawl quota
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("חובה להתחבר");
+        await requireAuth(ctx);
 
         // // URL validation — only allow Untappd beer pages to prevent SSRF/abuse
         // if (!args.untappdUrl.startsWith("https://untappd.com/") || !args.untappdUrl.startsWith("https://untp.beer/")) {
@@ -116,27 +115,12 @@ export const addDrink = mutation({
         untappdLink: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("חובה להתחבר");
+        const userId = await requireAuth(ctx);
 
         // Server-side price validation — client-side min="0" is bypassable
         if (args.price < 0) throw new Error("המחיר חייב להיות חיובי");
 
-        // Verify event exists
-        const event = await ctx.db.get(args.eventId);
-        if (!event) throw new Error("האירוע לא נמצא");
-
-        // Verify user is a participant before allowing them to add drinks
-        const isParticipant = await ctx.db
-            .query("eventParticipants")
-            .withIndex("by_event_and_user", (q) =>
-                q.eq("eventId", args.eventId).eq("userId", userId)
-            )
-            .first();
-
-        if (!isParticipant && event.ownerId !== userId) {
-            throw new Error("אין לך הרשאה להוסיף משקאות לסשן הזה");
-        }
+        await requireEventAccess(ctx, args.eventId, userId);
 
         return await ctx.db.insert("drinks", {
             eventId: args.eventId,
@@ -157,23 +141,10 @@ export const addDrink = mutation({
 export const getDrinksByEvent = query({
     args: { eventId: v.id("events") },
     handler: async (ctx, args) => {
-        const userId = await getAuthUserId(ctx);
-        if (userId === null) throw new Error("חובה להתחבר");
+        const userId = await requireAuth(ctx);
 
         // Verify event exists and user is authorized — each endpoint must auth independently
-        const event = await ctx.db.get(args.eventId);
-        if (!event) throw new Error("האירוע לא נמצא");
-
-        const isParticipant = await ctx.db
-            .query("eventParticipants")
-            .withIndex("by_event_and_user", (q) =>
-                q.eq("eventId", args.eventId).eq("userId", userId)
-            )
-            .first();
-
-        if (!isParticipant && event.ownerId !== userId) {
-            throw new Error("אין לך הרשאה לצפות בסשן הזה");
-        }
+        await requireEventAccess(ctx, args.eventId, userId);
 
         return await ctx.db
             .query("drinks")
