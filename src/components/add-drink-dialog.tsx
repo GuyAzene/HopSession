@@ -1,6 +1,5 @@
 import { useReducer } from "react";
 import { useMutation, useAction } from "convex/react";
-import { ConvexError } from "convex/values";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -17,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, DownloadCloud, AlertCircle } from "lucide-react";
+import { getErrorMessage } from "@/lib/errors";
 
 interface AddDrinkDialogProps {
     eventId: Id<"events">;
@@ -115,7 +115,8 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
             dispatch({ type: 'SCRAPE_SUCCESS', payload: data });
         } catch (error) {
             console.error("Scraping failed:", error);
-            dispatch({ type: 'SCRAPE_ERROR', payload: "לא הצלחנו למשוך נתונים מהלינק. נסה שוב או הזן ידנית." });
+            const message = getErrorMessage(error, "לא הצלחנו למשוך נתונים מהלינק. נסה שוב או הזן ידנית.");
+            dispatch({ type: 'SCRAPE_ERROR', payload: message });
         }
     };
 
@@ -139,9 +140,7 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
             handleClose();
         } catch (error) {
             console.error("Failed to add drink:", error);
-            const message = error instanceof ConvexError
-                ? String(error.data)
-                : 'שגיאה בהוספת הבירה. נסה שוב.';
+            const message = getErrorMessage(error, 'שגיאה בהוספת הבירה. נסה שוב.');
             dispatch({ type: 'SET_SUBMIT_ERROR', payload: message });
         } finally {
             dispatch({ type: 'SUBMIT_END' });

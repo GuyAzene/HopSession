@@ -1,7 +1,7 @@
 import React from 'react';
-import { ConvexError } from 'convex/values';
 import { Home } from 'lucide-react';
 import { router } from '@/main';
+import { getErrorMessage } from '@/lib/errors';
 
 interface Props {
     children: React.ReactNode;
@@ -34,9 +34,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         if (this.state.hasError) {
             if (this.props.fallback) return this.props.fallback;
             const { error } = this.state;
-            const message = error instanceof ConvexError
-                ? String(error.data)
-                : (error?.message ?? 'שגיאה לא צפויה');
+            const message = getErrorMessage(error, 'שגיאה לא צפויה');
             return (
                 <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
                     <p className="text-lg font-semibold text-brand-error">

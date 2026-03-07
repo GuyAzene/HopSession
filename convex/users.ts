@@ -24,7 +24,7 @@ export const updateProfile = mutation({
     },
     handler: async (ctx, args) => {
         const userId = await getAuthUserId(ctx);
-        if (userId === null) throw new ConvexError("לא מחובר");
+        if (userId === null) throw new ConvexError("חובה להתחבר");
 
         await ctx.db.patch(userId, {
             name: args.name,

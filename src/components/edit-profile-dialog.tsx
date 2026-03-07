@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
-import { ConvexError } from "convex/values";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import {
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Loader2, AlertCircle } from "lucide-react";
+import { getErrorMessage } from "@/lib/errors";
 
 interface EditProfileDialogProps {
     user: Doc<"users">;
@@ -45,9 +45,7 @@ export function EditProfileDialog({ user, isOpen, onClose }: EditProfileDialogPr
             onClose();
         } catch (error) {
             console.error("Failed to update profile:", error);
-            const message = error instanceof ConvexError
-                ? String(error.data)
-                : 'שגיאה בשמירת הפרופיל. נסה שוב.';
+            const message = getErrorMessage(error, 'שגיאה בשמירת הפרופיל. נסה שוב.');
             setSubmitError(message);
         } finally {
             setIsSubmitting(false);

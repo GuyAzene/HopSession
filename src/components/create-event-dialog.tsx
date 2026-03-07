@@ -32,6 +32,7 @@ import { combineDateAndTime } from "@/lib/dates";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useCurrentUser } from "@/lib/hooks";
+import { getErrorMessage } from "@/lib/errors";
 
 export function CreateEventDialog() {
     const user = useCurrentUser();
@@ -39,7 +40,7 @@ export function CreateEventDialog() {
 
     const [eventName, setEventName] = useState("");
     const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
-    const [eventTime, setEventTime] = useState("20:30");
+    const [eventTime, setEventTime] = useState("19:00");
 
     const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +71,8 @@ export function CreateEventDialog() {
 
         } catch (err) {
             console.error("Failed to create event:", err);
-            setError("אופס, משהו השתבש ביצירת המפגש. נסה שוב.");
+            const message = getErrorMessage(err, 'אופס, משהו השתבש ביצירת המפגש. נסה שוב.');
+            setError(message);
         } finally {
             setIsSubmitting(false);
         }

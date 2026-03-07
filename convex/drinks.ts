@@ -39,7 +39,9 @@ export const scrapeUntappdBeer = action({
 
         const response = await fetch(apiUrl, options);
         if (!response.ok) {
-            throw new Error(`Firecrawl API Error: ${await response.text()}`);
+            const responseText = await response.text();
+            console.error('Firecrawl scrape request failed:', response.status, responseText);
+            throw new Error('Firecrawl scrape request failed');
         }
 
         const data = await response.json();
@@ -55,7 +57,7 @@ export const scrapeUntappdBeer = action({
         try {
             // חילוץ שם הבירה
             const beerName = $('.basic .name h1').first().text().trim();
-            if (!beerName) throw new Error('Could not extract beer name');
+            if (!beerName) throw new ConvexError('לא הצלחנו לחלץ את שם הבירה מהדף. נסה לינק אחר.');
 
             // חילוץ שם המבשלה
             const breweryName = $('.brewery a').first().text().trim();
@@ -97,7 +99,11 @@ export const scrapeUntappdBeer = action({
 
         } catch (error: unknown) {
             console.error("Cheerio parsing failed:", error);
-            throw new Error("Failed to parse beer HTML structure. Untappd might have changed their DOM.");
+            if (error instanceof ConvexError) {
+                throw error;
+            }
+
+            throw new ConvexError('לא הצלחנו לנתח את דף הבירה. נסה לינק אחר או נסה שוב מאוחר יותר.');
         }
     }
 });

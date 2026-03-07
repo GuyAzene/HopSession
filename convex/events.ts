@@ -82,7 +82,7 @@ export const getEvent = query({
 
         // אם המשתמש לא מופיע בטבלת המשתתפים (וגם לא הבעלים, ליתר ביטחון)
         if (!isParticipant && event.ownerId !== userId) {
-            throw new ConvexError("אין לך הרשאה לצפות בסשן הזה 🛑");
+            throw new ConvexError("אין לך הרשאה לגשת לסשן הזה");
         }
 
         return event;
