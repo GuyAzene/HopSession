@@ -7,7 +7,16 @@ export const scrapeUntappdBeer = action({
     args: {
         untappdUrl: v.string(),
     },
-    handler: async (_ctx, args) => {
+    handler: async (ctx, args) => {
+        // Auth check — prevents unauthenticated callers from burning Firecrawl quota
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("חובה להתחבר");
+
+        // // URL validation — only allow Untappd beer pages to prevent SSRF/abuse
+        // if (!args.untappdUrl.startsWith("https://untappd.com/") || !args.untappdUrl.startsWith("https://untp.beer/")) {
+        //     throw new Error("כתובת URL חייבת להיות מדף בירה של Untappd (https://untappd.com/b/...)");
+        // }
+
         // --- 1. משיכת ה-HTML דרך Firecrawl (טוקן 1 בלבד) ---
         const apiUrl = 'https://api.firecrawl.dev/v2/scrape';
         const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
@@ -41,7 +50,7 @@ export const scrapeUntappdBeer = action({
             throw new Error("No HTML returned from Firecrawl");
         }
 
-        // --- 2. חילוץ הנתונים בעזרת Cheerio (הקוד שלך!) ---
+        // --- 2. חילוץ הנתונים בעזרת Cheerio ---
         const $ = cheerio.load(html);
 
         try {
@@ -107,16 +116,31 @@ export const addDrink = mutation({
         untappdLink: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        // 1. קבלת מזהה המשתמש ישירות מ-Convex Auth
         const userId = await getAuthUserId(ctx);
-        if (!userId) {
-            throw new Error("You must be logged in to add a drink");
+        if (!userId) throw new Error("חובה להתחבר");
+
+        // Server-side price validation — client-side min="0" is bypassable
+        if (args.price < 0) throw new Error("המחיר חייב להיות חיובי");
+
+        // Verify event exists
+        const event = await ctx.db.get(args.eventId);
+        if (!event) throw new Error("האירוע לא נמצא");
+
+        // Verify user is a participant before allowing them to add drinks
+        const isParticipant = await ctx.db
+            .query("eventParticipants")
+            .withIndex("by_event_and_user", (q) =>
+                q.eq("eventId", args.eventId).eq("userId", userId)
+            )
+            .first();
+
+        if (!isParticipant && event.ownerId !== userId) {
+            throw new Error("אין לך הרשאה להוסיף משקאות לסשן הזה");
         }
 
-        // 2. שמירת הבירה במסד הנתונים
         return await ctx.db.insert("drinks", {
             eventId: args.eventId,
-            payerId: userId, // אנחנו כבר מקבלים Id<"users"> נקי
+            payerId: userId,
             beerName: args.beerName,
             breweryName: args.breweryName,
             price: args.price,
@@ -125,19 +149,36 @@ export const addDrink = mutation({
             style: args.style,
             beerImageURL: args.beerImageURL,
             untappdLink: args.untappdLink,
-            consumers: [userId], // מי שקנה הוא אוטומטית הטועם הראשון
+            consumers: [userId],
         });
-
     }
 });
 
 export const getDrinksByEvent = query({
     args: { eventId: v.id("events") },
     handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (userId === null) throw new Error("חובה להתחבר");
+
+        // Verify event exists and user is authorized — each endpoint must auth independently
+        const event = await ctx.db.get(args.eventId);
+        if (!event) throw new Error("האירוע לא נמצא");
+
+        const isParticipant = await ctx.db
+            .query("eventParticipants")
+            .withIndex("by_event_and_user", (q) =>
+                q.eq("eventId", args.eventId).eq("userId", userId)
+            )
+            .first();
+
+        if (!isParticipant && event.ownerId !== userId) {
+            throw new Error("אין לך הרשאה לצפות בסשן הזה");
+        }
+
         return await ctx.db
             .query("drinks")
             .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
-            .order("desc") // נציג את הבירות החדשות ביותר למעלה
+            .order("desc")
             .collect();
     }
 });

@@ -50,10 +50,11 @@ export const getMyEvents = query({
             })
         );
 
-        // מסננים למקרה שמשהו נמחק, וממיינים לפי תאריך (הכי חדש למעלה)
+        // Type predicate tells TypeScript the filtered array is non-null,
+        // eliminating the need for ! assertions on the frontend
         return events
-            .filter((e) => e !== null)
-            .sort((a, b) => b!.date - a!.date);
+            .filter((e): e is NonNullable<typeof e> => e !== null)
+            .sort((a, b) => b.date - a.date);
     },
 });
 
@@ -68,10 +69,10 @@ export const getEvent = query({
             throw new Error("חובה להתחבר");
         }
 
-        // 2. שליפת האירוע
+        // 2. שליפת האירוע — return null for not-found instead of throwing
         const event = await ctx.db.get(args.eventId);
         if (!event) {
-            throw new Error("האירוע לא נמצא או שנמחק");
+            return null;
         }
 
         // 3. בדיקת הרשאות מול טבלת המשתתפים באמצעות האינדקס המורכב

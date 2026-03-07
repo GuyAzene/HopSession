@@ -21,6 +21,8 @@ function RouteComponent() {
     const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false)
 
     // שליפת פרטי האירוע
+    // Note: getEvent throws for auth errors (caught by ErrorBoundary in __root.tsx)
+    // and returns null for not-found (handled below)
     const event = useQuery(api.events.getEvent, {
         eventId: eventId as Id<"events">
     })
@@ -35,6 +37,15 @@ function RouteComponent() {
         return (
             <div className="flex justify-center mt-20">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-text/50" />
+            </div>
+        )
+    }
+
+    // getEvent returns null when the event doesn't exist
+    if (event === null) {
+        return (
+            <div className="flex justify-center mt-20">
+                <p className="text-brand-text/60">האירוע לא נמצא.</p>
             </div>
         )
     }
@@ -82,12 +93,10 @@ function RouteComponent() {
                         </Button>
                     </div>
 
-                    {/* Scroll Area */}
-                    <ScrollArea className="h-150 rounded-2xl border border-brand-text/10 bg-brand-surface p-6 shadow-sm" dir="rtl">
-                        {/* שינינו מ-pr-4 ל-pl-5 כדי לתת מקום לפס הגלילה בצד שמאל */}
+                    {/* Dynamic height instead of hardcoded h-150 */}
+                    <ScrollArea className="max-h-[calc(100vh-16rem)] rounded-2xl border border-brand-text/10 bg-brand-surface p-6 shadow-sm" dir="rtl">
                         <div className="flex flex-col gap-4 pl-5">
 
-                            {/* רינדור רשימת הבירות או מצב ריק */}
                             {drinks.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center text-center py-20 gap-4 opacity-50">
                                     <Beer className="h-12 w-12 text-brand-text/50" />
@@ -122,7 +131,6 @@ function RouteComponent() {
 
             </div>
 
-            {/* הוספת המודל שייפתח בלחיצה על הכפתור */}
             <AddDrinkDialog
                 eventId={eventId as Id<"events">}
                 isOpen={isAddDrinkOpen}

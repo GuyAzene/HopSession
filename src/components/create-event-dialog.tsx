@@ -27,30 +27,24 @@ import {
     FieldDescription,
 } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
-import { combineDateAndTime } from "@/lib/dates"; // הייבוא החדש שלנו!
+import { combineDateAndTime } from "@/lib/dates";
 
 import { useMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
+import { useCurrentUser } from "@/lib/hooks";
 
-type CurrentUser = FunctionReturnType<typeof api.users.current>;
+export function CreateEventDialog() {
+    const user = useCurrentUser();
+    const isLoading = user === undefined;
 
-interface CreateEventDialogProps {
-    user: CurrentUser | undefined;
-}
-
-export function CreateEventDialog({ user }: CreateEventDialogProps) {
     const [eventName, setEventName] = useState("");
     const [eventDate, setEventDate] = useState<Date | undefined>(new Date());
     const [eventTime, setEventTime] = useState("20:30");
 
-    // הסטייט החדש לשגיאות
     const [error, setError] = useState<string | null>(null);
 
     const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const isLoading = user === undefined;
 
     const createEvent = useMutation(api.events.create);
 
@@ -58,10 +52,9 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
         if (!eventDate || !eventName.trim() || !eventTime) return;
 
         setIsSubmitting(true);
-        setError(null); // איפוס שגיאות קודמות
+        setError(null);
 
         try {
-            // הקוד נראה עכשיו הרבה יותר נקי וקריא
             const finalDateTime = combineDateAndTime(eventDate, eventTime);
 
             await createEvent({
@@ -77,7 +70,6 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
 
         } catch (err) {
             console.error("Failed to create event:", err);
-            // הצגת שגיאה ידידותית למשתמש
             setError("אופס, משהו השתבש ביצירת המפגש. נסה שוב.");
         } finally {
             setIsSubmitting(false);
@@ -151,7 +143,6 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                                 </Popover>
                             </Field>
 
-                            {/* כיווצנו את הרוחב ל-24 (96px) והוספנו shrink-0 כדי לשמור על הפרופורציה */}
                             <Field className="w-24 shrink-0">
                                 <FieldLabel htmlFor="eventTime" className="text-brand-text text-center">שעה</FieldLabel>
                                 <Input
@@ -161,7 +152,6 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                                     value={eventTime}
                                     onChange={(e) => setEventTime(e.target.value)}
                                     dir="ltr"
-                                    // הכנסנו את העיצוב החדש והממורכז שלך + פדינג קטן שיישב יפה
                                     className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center px-2"
                                 />
                             </Field>
@@ -169,7 +159,6 @@ export function CreateEventDialog({ user }: CreateEventDialogProps) {
                     </FieldGroup>
                 </div>
 
-                {/* הצגת הודעת שגיאה במקרה של כישלון */}
                 {error && (
                     <div className="px-4 py-3 text-sm text-brand-error bg-brand-error/10 border border-brand-error/20 rounded-md flex items-center gap-2 mb-4">
                         <AlertCircle className="h-4 w-4 shrink-0" />

@@ -1,11 +1,10 @@
 import React, { Suspense } from 'react'
 import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { useConvexAuth, useQuery } from "convex/react"
+import { useConvexAuth } from "convex/react"
 
-// ייבוא הקומפוננטות שלך וה-API
-import { api } from "../../convex/_generated/api"
 import { WelcomeScreen } from "@/components/welcome-screen"
 import { Navbar } from "@/components/navbar"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 // טוען את ה-Devtools רק אם אנחנו לא בסביבת פרודקשן (חוסך המון משקל מהקוד החי!)
 const TanStackRouterDevtools = import.meta.env.PROD
@@ -23,9 +22,6 @@ export const Route = createRootRoute({
 function RootComponent() {
     const { isAuthenticated, isLoading } = useConvexAuth();
 
-    // שולפים את המשתמש פה כדי להעביר ל-Navbar
-    const user = useQuery(api.users.current);
-
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-brand-bg text-brand-text">
@@ -34,7 +30,6 @@ function RootComponent() {
         );
     }
 
-    // אם לא מחוברים, מציגים את מסך הפתיחה במעטפת שלנו
     if (!isAuthenticated) {
         return (
             <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
@@ -43,17 +38,18 @@ function RootComponent() {
         );
     }
 
-    // אם מחוברים, מציגים את ה-Dashboard (נאבבאר + תוכן משתנה)
     return (
         <div className="min-h-screen bg-brand-bg text-brand-text font-sans flex flex-col">
-            <Navbar user={user} />
+            {/* Navbar fetches its own user via useCurrentUser hook */}
+            <Navbar />
 
             <main className="flex-1 p-4">
-                {/* ה-Outlet שואב לתוכו את עמוד הבית (EventsFeed) או את עמוד האירוע */}
-                <Outlet />
+                {/* ErrorBoundary catches throws from Convex queries (e.g. auth errors) */}
+                <ErrorBoundary>
+                    <Outlet />
+                </ErrorBoundary>
             </main>
 
-            {/* כלי הפיתוח של הראוטר (מופיעים רק ב-dev ונטענים בעצלות) */}
             <Suspense fallback={null}>
                 <TanStackRouterDevtools position="bottom-right" />
             </Suspense>

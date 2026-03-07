@@ -19,8 +19,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true)
-    await signIn("google")
-    setIsGoogleLoading(false)
+    try {
+      await signIn("google")
+      // Note: on successful OAuth, the page redirects — code below this line won't run
+    } catch {
+      setMessage({ type: "error", text: "ההתחברות עם גוגל נכשלה. נסה שוב." })
+    } finally {
+      // Runs on error; on success the page has already redirected
+      setIsGoogleLoading(false)
+    }
   }
 
   const handleMagicLink = async (e: React.FormEvent) => {
@@ -50,9 +57,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           </CardHeader>
           <CardContent>
 
-
               {message && <FormMessage type={message.type} text={message.text} />}
-
 
             {!isSuccess && (
                 <form onSubmit={handleMagicLink}>

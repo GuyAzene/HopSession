@@ -3,9 +3,8 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { BadgeCheckIcon, LogOutIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import type { FunctionReturnType } from "convex/server";
-import { api } from "../../convex/_generated/api";
-import { EditProfileDialog } from "@/components/edit-profile-dialog"; // ייבוא הקומפוננטה החדשה
+import type { CurrentUser } from "@/lib/types";
+import { EditProfileDialog } from "@/components/edit-profile-dialog";
 
 import {
     DropdownMenu,
@@ -15,8 +14,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-type CurrentUser = FunctionReturnType<typeof api.users.current>;
 
 interface UserMenuProps {
     user: Exclude<CurrentUser, null>;
@@ -58,7 +55,6 @@ export function UserMenu({ user }: UserMenuProps) {
                     className="border-brand-text/10 bg-brand-surface"
                 >
                     <DropdownMenuGroup>
-                        {/* לחיצה כאן פותחת את הדיאלוג */}
                         <DropdownMenuItem
                             className="cursor-pointer text-brand-text focus:bg-brand-text/5"
                             onClick={() => setIsEditDialogOpen(true)}

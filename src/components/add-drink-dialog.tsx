@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -23,95 +23,124 @@ interface AddDrinkDialogProps {
     onClose: () => void;
 }
 
+// All form state in one place — avoids 10 separate useState calls and
+// makes the reset logic trivial (just dispatch RESET)
+interface FormState {
+    untappdUrl: string;
+    isScraping: boolean;
+    scrapeError: string | null;
+    beerName: string;
+    breweryName: string;
+    price: string;
+    abv: number | undefined;
+    rating: number | undefined;
+    style: string | undefined;
+    beerImageURL: string | undefined;
+    isSubmitting: boolean;
+}
+
+type FormAction =
+    | { type: 'SET_UNTAPPD_URL'; payload: string }
+    | { type: 'SCRAPE_START' }
+    | { type: 'SCRAPE_SUCCESS'; payload: { beerName: string; breweryName?: string; abv?: number; rating?: number; style?: string; beerImageURL?: string } }
+    | { type: 'SCRAPE_ERROR'; payload: string }
+    | { type: 'SET_FIELD'; field: 'beerName' | 'breweryName' | 'price'; payload: string }
+    | { type: 'SUBMIT_START' }
+    | { type: 'SUBMIT_END' }
+    | { type: 'RESET' }
+
+const initialState: FormState = {
+    untappdUrl: '',
+    isScraping: false,
+    scrapeError: null,
+    beerName: '',
+    breweryName: '',
+    price: '',
+    abv: undefined,
+    rating: undefined,
+    style: undefined,
+    beerImageURL: undefined,
+    isSubmitting: false,
+};
+
+function formReducer(state: FormState, action: FormAction): FormState {
+    switch (action.type) {
+        case 'SET_UNTAPPD_URL':
+            // Clear stale error when URL changes
+            return { ...state, untappdUrl: action.payload, scrapeError: null };
+        case 'SCRAPE_START':
+            return { ...state, isScraping: true, scrapeError: null };
+        case 'SCRAPE_SUCCESS':
+            return {
+                ...state,
+                isScraping: false,
+                beerName: action.payload.beerName,
+                breweryName: action.payload.breweryName ?? '',
+                abv: action.payload.abv,
+                rating: action.payload.rating,
+                style: action.payload.style,
+                beerImageURL: action.payload.beerImageURL,
+            };
+        case 'SCRAPE_ERROR':
+            return { ...state, isScraping: false, scrapeError: action.payload };
+        case 'SET_FIELD':
+            return { ...state, [action.field]: action.payload };
+        case 'SUBMIT_START':
+            return { ...state, isSubmitting: true };
+        case 'SUBMIT_END':
+            return { ...state, isSubmitting: false };
+        case 'RESET':
+            return initialState;
+    }
+}
+
 export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps) {
-    // סטייט עבור שאיבת הנתונים
-    const [untappdUrl, setUntappdUrl] = useState("");
-    const [isScraping, setIsScraping] = useState(false);
-    const [scrapeError, setScrapeError] = useState<string | null>(null);
+    const [state, dispatch] = useReducer(formReducer, initialState);
 
-    // סטייט עבור הטופס (הגלוי)
-    const [beerName, setBeerName] = useState("");
-    const [breweryName, setBreweryName] = useState("");
-    const [price, setPrice] = useState("");
-
-    // סטייט עבור נתונים נסתרים מאנטאפד
-    const [abv, setAbv] = useState<number | undefined>(undefined);
-    const [rating, setRating] = useState<number | undefined>(undefined);
-    const [style, setStyle] = useState<string | undefined>(undefined);
-    const [beerImageURL, setBeerImageURL] = useState<string | undefined>(undefined);
-
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // חיבור לפונקציות השרת (שים לב לנתיב, תקן אם קראת לקובץ בשם אחר)
     const scrapeUntappdBeer = useAction(api.drinks.scrapeUntappdBeer);
-    // תזכורת: נצטרך ליצור את המוטציה הזו בהמשך!
     const addDrink = useMutation(api.drinks.addDrink);
 
     const handleScrape = async () => {
-        if (!untappdUrl.trim()) return;
+        if (!state.untappdUrl.trim()) return;
 
-        setIsScraping(true);
-        setScrapeError(null);
-
+        dispatch({ type: 'SCRAPE_START' });
         try {
-            const data = await scrapeUntappdBeer({ untappdUrl });
-
-            // מילוי אוטומטי של הטופס!
-            setBeerName(data.beerName || "");
-            setBreweryName(data.breweryName || "");
-
-            // שמירת שאר הנתונים ברקע
-            setAbv(data.abv);
-            setRating(data.rating);
-            setStyle(data.style);
-            setBeerImageURL(data.beerImageURL);
-
+            const data = await scrapeUntappdBeer({ untappdUrl: state.untappdUrl });
+            dispatch({ type: 'SCRAPE_SUCCESS', payload: data });
         } catch (error) {
             console.error("Scraping failed:", error);
-            setScrapeError("לא הצלחנו למשוך נתונים מהלינק. נסה שוב או הזן ידנית.");
-        } finally {
-            setIsScraping(false);
+            dispatch({ type: 'SCRAPE_ERROR', payload: "לא הצלחנו למשוך נתונים מהלינק. נסה שוב או הזן ידנית." });
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!beerName || !price) return;
+        if (!state.beerName || !state.price) return;
 
-        setIsSubmitting(true);
+        dispatch({ type: 'SUBMIT_START' });
         try {
             await addDrink({
                 eventId,
-                beerName,
-                breweryName: breweryName || undefined,
-                price: parseFloat(price),
-                abv,
-                rating,
-                style,
-                beerImageURL,
-                untappdLink: untappdUrl || undefined,
+                beerName: state.beerName,
+                breweryName: state.breweryName || undefined,
+                price: parseFloat(state.price),
+                abv: state.abv,
+                rating: state.rating,
+                style: state.style,
+                beerImageURL: state.beerImageURL,
+                untappdLink: state.untappdUrl || undefined,
             });
-
-            // איפוס וסגירה
             handleClose();
         } catch (error) {
             console.error("Failed to add drink:", error);
         } finally {
-            setIsSubmitting(false);
+            dispatch({ type: 'SUBMIT_END' });
         }
     };
 
+    // Single RESET action handles all fields — no manual list to maintain
     const handleClose = () => {
-        // איפוס כל הסטייטים בעת סגירת המודל
-        setUntappdUrl("");
-        setBeerName("");
-        setBreweryName("");
-        setPrice("");
-        setAbv(undefined);
-        setRating(undefined);
-        setStyle(undefined);
-        setBeerImageURL(undefined);
-        setScrapeError(null);
+        dispatch({ type: 'RESET' });
         onClose();
     };
 
@@ -135,8 +164,8 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                         </FieldLabel>
                         <div className="flex gap-2">
                             <Input
-                                value={untappdUrl}
-                                onChange={(e) => setUntappdUrl(e.target.value)}
+                                value={state.untappdUrl}
+                                onChange={(e) => dispatch({ type: 'SET_UNTAPPD_URL', payload: e.target.value })}
                                 placeholder="https://untappd.com/b/..."
                                 dir="ltr"
                                 className="border-brand-text/20 bg-brand-surface text-brand-text focus-visible:ring-brand-blue flex-1"
@@ -144,17 +173,17 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                             <Button
                                 type="button"
                                 onClick={handleScrape}
-                                disabled={isScraping || !untappdUrl}
+                                disabled={state.isScraping || !state.untappdUrl}
                                 className="bg-brand-text text-brand-bg hover:bg-brand-text/90 shrink-0"
                             >
-                                {isScraping ? <Loader2 className="animate-spin h-4 w-4" /> : <DownloadCloud className="h-4 w-4" />}
+                                {state.isScraping ? <Loader2 className="animate-spin h-4 w-4" /> : <DownloadCloud className="h-4 w-4" />}
                             </Button>
                         </div>
 
-                        {scrapeError && (
+                        {state.scrapeError && (
                             <div className="text-sm text-brand-error flex items-center gap-1 mt-1">
                                 <AlertCircle className="h-3 w-3" />
-                                <span>{scrapeError}</span>
+                                <span>{state.scrapeError}</span>
                             </div>
                         )}
                     </div>
@@ -175,8 +204,8 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                             <Field>
                                 <FieldLabel className="text-brand-text">שם הבירה <span className="text-brand-error">*</span></FieldLabel>
                                 <Input
-                                    value={beerName}
-                                    onChange={(e) => setBeerName(e.target.value)}
+                                    value={state.beerName}
+                                    onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'beerName', payload: e.target.value })}
                                     placeholder="לדוגמה: Bianca Raspberry Peach"
                                     className="border-brand-text/20 bg-brand-surface text-brand-text focus-visible:ring-brand-blue"
                                     required
@@ -187,8 +216,8 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                             <Field>
                                 <FieldLabel className="text-brand-text">מבשלה</FieldLabel>
                                 <Input
-                                    value={breweryName}
-                                    onChange={(e) => setBreweryName(e.target.value)}
+                                    value={state.breweryName}
+                                    onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'breweryName', payload: e.target.value })}
                                     placeholder="לדוגמה: Omnipollo"
                                     className="border-brand-text/20 bg-brand-surface text-brand-text focus-visible:ring-brand-blue"
                                     dir="ltr"
@@ -201,8 +230,8 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
+                                    value={state.price}
+                                    onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'price', payload: e.target.value })}
                                     placeholder="0.00"
                                     className="border-brand-text/20 bg-brand-surface text-brand-text focus-visible:ring-brand-blue"
                                     required
@@ -225,10 +254,10 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                     <Button
                         type="submit"
                         form="add-drink-form"
-                        disabled={isSubmitting || !beerName || !price}
+                        disabled={state.isSubmitting || !state.beerName || !state.price}
                         className="bg-brand-text text-brand-bg hover:bg-brand-text/90"
                     >
-                        {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : "הוסף למפגש"}
+                        {state.isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : "הוסף למפגש"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
