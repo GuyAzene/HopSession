@@ -1,5 +1,6 @@
 import { useReducer } from "react";
 import { useMutation, useAction } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -37,6 +38,7 @@ interface FormState {
     style: string | undefined;
     beerImageURL: string | undefined;
     isSubmitting: boolean;
+    submitError: string | null;
 }
 
 type FormAction =
@@ -47,6 +49,7 @@ type FormAction =
     | { type: 'SET_FIELD'; field: 'beerName' | 'breweryName' | 'price'; payload: string }
     | { type: 'SUBMIT_START' }
     | { type: 'SUBMIT_END' }
+    | { type: 'SET_SUBMIT_ERROR'; payload: string }
     | { type: 'RESET' }
 
 const initialState: FormState = {
@@ -61,6 +64,7 @@ const initialState: FormState = {
     style: undefined,
     beerImageURL: undefined,
     isSubmitting: false,
+    submitError: null,
 };
 
 function formReducer(state: FormState, action: FormAction): FormState {
@@ -86,9 +90,11 @@ function formReducer(state: FormState, action: FormAction): FormState {
         case 'SET_FIELD':
             return { ...state, [action.field]: action.payload };
         case 'SUBMIT_START':
-            return { ...state, isSubmitting: true };
+            return { ...state, isSubmitting: true, submitError: null };
         case 'SUBMIT_END':
             return { ...state, isSubmitting: false };
+        case 'SET_SUBMIT_ERROR':
+            return { ...state, isSubmitting: false, submitError: action.payload };
         case 'RESET':
             return initialState;
     }
@@ -133,6 +139,10 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
             handleClose();
         } catch (error) {
             console.error("Failed to add drink:", error);
+            const message = error instanceof ConvexError
+                ? String(error.data)
+                : 'שגיאה בהוספת הבירה. נסה שוב.';
+            dispatch({ type: 'SET_SUBMIT_ERROR', payload: message });
         } finally {
             dispatch({ type: 'SUBMIT_END' });
         }
@@ -241,6 +251,13 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
                         </FieldGroup>
                     </form>
                 </div>
+
+                {state.submitError && (
+                    <div className="text-sm text-brand-error flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        <span>{state.submitError}</span>
+                    </div>
+                )}
 
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button

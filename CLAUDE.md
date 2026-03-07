@@ -69,3 +69,14 @@ The app is fully real-time via Convex. Components use `useQuery` for reactive re
 ### Adding Routes
 
 Create a new file in `src/routes/` — TanStack Router plugin auto-generates the tree. Dynamic routes use `$param` syntax (e.g., `event.$eventId.tsx`).
+
+## Error Handling
+
+### Backend (`convex/`)
+- `throw new ConvexError("message")` — expected failures: auth, not found, no permission, validation. Import from `"convex/values"`.
+- `throw new Error("message")` — developer bugs / infrastructure (bad env var, external API down, parsing failure).
+
+### Frontend (`src/`)
+- Queries throwing → caught by **ErrorBoundary** — show `error instanceof ConvexError ? error.data : error.message ?? "שגיאה לא צפויה"`
+- Mutations/Actions → `try/catch` — always surface error to UI, never silently swallow
+- Check `error instanceof ConvexError` to show `error.data` directly; otherwise show generic fallback message

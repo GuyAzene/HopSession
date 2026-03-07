@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth } from "./helpers";
@@ -82,7 +82,7 @@ export const getEvent = query({
 
         // אם המשתמש לא מופיע בטבלת המשתתפים (וגם לא הבעלים, ליתר ביטחון)
         if (!isParticipant && event.ownerId !== userId) {
-            throw new Error("אין לך הרשאה לצפות בסשן הזה 🛑");
+            throw new ConvexError("אין לך הרשאה לצפות בסשן הזה 🛑");
         }
 
         return event;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import {
@@ -13,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface EditProfileDialogProps {
     user: Doc<"users">;
@@ -25,6 +26,7 @@ export function EditProfileDialog({ user, isOpen, onClose }: EditProfileDialogPr
     const [name, setName] = useState(user.name ?? "");
     const [phone, setPhone] = useState(user.phone ?? "");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const updateProfile = useMutation(api.users.updateProfile);
 
@@ -37,11 +39,16 @@ export function EditProfileDialog({ user, isOpen, onClose }: EditProfileDialogPr
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setSubmitError(null);
         try {
             await updateProfile({ name, phone });
             onClose();
         } catch (error) {
             console.error("Failed to update profile:", error);
+            const message = error instanceof ConvexError
+                ? String(error.data)
+                : 'שגיאה בשמירת הפרופיל. נסה שוב.';
+            setSubmitError(message);
         } finally {
             setIsSubmitting(false);
         }
@@ -91,6 +98,13 @@ export function EditProfileDialog({ user, isOpen, onClose }: EditProfileDialogPr
                             />
                         </Field>
                     </FieldGroup>
+
+                    {submitError && (
+                        <div className="mt-4 text-sm text-brand-error flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            <span>{submitError}</span>
+                        </div>
+                    )}
 
                     <DialogFooter className="mt-8 gap-2">
                         <Button

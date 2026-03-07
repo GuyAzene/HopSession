@@ -1,4 +1,5 @@
 import React from 'react';
+import { ConvexError } from 'convex/values';
 
 interface Props {
     children: React.ReactNode;
@@ -25,10 +26,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
     render() {
         if (this.state.hasError) {
             if (this.props.fallback) return this.props.fallback;
+            const { error } = this.state;
+            const message = error instanceof ConvexError
+                ? String(error.data)
+                : (error?.message ?? 'שגיאה לא צפויה');
             return (
                 <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
                     <p className="text-lg font-semibold text-brand-error">
-                        {this.state.error?.message ?? 'שגיאה לא צפויה'}
+                        {message}
                     </p>
                 </div>
             );

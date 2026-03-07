@@ -1,13 +1,14 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { ConvexError } from "convex/values";
 
 // Works across queries, mutations, and actions — all have auth
 export async function requireAuth(
     ctx: QueryCtx | MutationCtx | ActionCtx
 ): Promise<Id<"users">> {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("חובה להתחבר");
+    if (!userId) throw new ConvexError("חובה להתחבר");
     return userId;
 }
 
@@ -19,7 +20,7 @@ export async function requireEventAccess(
     userId: Id<"users">
 ) {
     const event = await ctx.db.get(eventId);
-    if (!event) throw new Error("האירוע לא נמצא");
+    if (!event) throw new ConvexError("האירוע לא נמצא");
 
     const isParticipant = await ctx.db
         .query("eventParticipants")
@@ -29,7 +30,7 @@ export async function requireEventAccess(
         .first();
 
     if (!isParticipant && event.ownerId !== userId) {
-        throw new Error("אין לך הרשאה לגשת לסשן הזה");
+        throw new ConvexError("אין לך הרשאה לגשת לסשן הזה");
     }
 
     return event;

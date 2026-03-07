@@ -67,7 +67,7 @@ export function UserMenu({ user }: UserMenuProps) {
                     <DropdownMenuSeparator className="bg-brand-text/10" />
 
                     <DropdownMenuItem
-                        onClick={() => void signOut()}
+                        onClick={() => signOut().catch((err) => console.error("Sign out failed:", err))}
                         className="text-brand-error focus:bg-brand-error/10 focus:text-brand-error cursor-pointer font-medium"
                     >
                         <LogOutIcon className="ml-2 h-4 w-4" />

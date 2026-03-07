@@ -1,5 +1,5 @@
 import {action, mutation, query} from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import * as cheerio from 'cheerio';
 import { requireAuth, requireEventAccess } from "./helpers";
 
@@ -118,7 +118,7 @@ export const addDrink = mutation({
         const userId = await requireAuth(ctx);
 
         // Server-side price validation — client-side min="0" is bypassable
-        if (args.price < 0) throw new Error("המחיר חייב להיות חיובי");
+        if (args.price < 0) throw new ConvexError("המחיר חייב להיות חיובי");
 
         await requireEventAccess(ctx, args.eventId, userId);
 
