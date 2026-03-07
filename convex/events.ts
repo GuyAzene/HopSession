@@ -66,10 +66,10 @@ export const getEvent = query({
         // 1. אימות משתמש
         const userId = await requireAuth(ctx);
 
-        // 2. שליפת האירוע — return null for not-found instead of throwing
+        // 2. שליפת האירוע — throw if not found so ErrorBoundary can show message
         const event = await ctx.db.get(args.eventId);
         if (!event) {
-            return null;
+            throw new ConvexError("האירוע לא נמצא");
         }
 
         // 3. בדיקת הרשאות מול טבלת המשתתפים באמצעות האינדקס המורכב

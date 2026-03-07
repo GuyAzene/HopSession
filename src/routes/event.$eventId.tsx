@@ -21,8 +21,7 @@ function RouteComponent() {
     const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false)
 
     // שליפת פרטי האירוע
-    // Note: getEvent throws for auth errors (caught by ErrorBoundary in __root.tsx)
-    // and returns null for not-found (handled below)
+    // Note: getEvent throws for both not-found and auth errors (caught by ErrorBoundary)
     const event = useQuery(api.events.getEvent, {
         eventId: eventId as Id<"events">
     })
@@ -41,15 +40,7 @@ function RouteComponent() {
         )
     }
 
-    // getEvent returns null when the event doesn't exist
-    if (event === null) {
-        return (
-            <div className="flex justify-center mt-20">
-                <p className="text-brand-text/60">האירוע לא נמצא.</p>
-            </div>
-        )
-    }
-
+    // getEvent throws if not found (ErrorBoundary will catch it)
     const formattedDate = new Date(event.date).toLocaleDateString("he-IL", {
         weekday: 'long',
         year: 'numeric',
