@@ -16,20 +16,28 @@ export const Route = createFileRoute('/event/$eventId')({
 
 function RouteComponent() {
     const { eventId } = Route.useParams()
+    const hasValidEventId = Boolean(eventId.trim())
+    const eventQueryArgs = hasValidEventId
+        ? { eventId: eventId as Id<"events"> }
+        : "skip"
 
     // ניהול הסטייט של המודל
     const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false)
 
     // שליפת פרטי האירוע
     // Note: getEvent throws for both not-found and auth errors (caught by ErrorBoundary)
-    const event = useQuery(api.events.getEvent, {
-        eventId: eventId as Id<"events">
-    })
+    const event = useQuery(api.events.getEvent, eventQueryArgs)
 
     // שליפת המשקאות של האירוע
-    const drinks = useQuery(api.drinks.getDrinksByEvent, {
-        eventId: eventId as Id<"events">
-    })
+    const drinks = useQuery(api.drinks.getDrinksByEvent, eventQueryArgs)
+
+    if (!hasValidEventId) {
+        return (
+            <div className="flex justify-center mt-20">
+                <p className="text-sm text-brand-error">קישור המפגש לא תקין.</p>
+            </div>
+        )
+    }
 
     // מוודא שגם האירוע וגם המשקאות נטענו לפני הרינדור
     if (event === undefined || drinks === undefined) {

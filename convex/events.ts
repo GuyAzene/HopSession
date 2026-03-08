@@ -3,6 +3,11 @@ import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth } from "./helpers";
 
+const MAX_EVENTS_PER_FEED = 50;
+const MAX_EVENT_NAME_LENGTH = 80;
+const EVENT_PAST_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+const EVENT_FUTURE_LIMIT_MS = 10 * 365 * 24 * 60 * 60 * 1000;
+
 // 1. מוטציית היצירה המעודכנת
 export const create = mutation({
     args: {
@@ -11,10 +16,28 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const userId = await requireAuth(ctx);
+        const eventName = args.name.trim();
+
+        if (!eventName) {
+            throw new ConvexError('חובה להזין שם למפגש.');
+        }
+
+        if (eventName.length > MAX_EVENT_NAME_LENGTH) {
+            throw new ConvexError('שם המפגש ארוך מדי. עד 80 תווים.');
+        }
+
+        const now = Date.now();
+        if (!Number.isFinite(args.date)) {
+            throw new ConvexError('תאריך המפגש לא תקין.');
+        }
+
+        if (args.date < now - EVENT_PAST_TOLERANCE_MS || args.date > now + EVENT_FUTURE_LIMIT_MS) {
+            throw new ConvexError('תאריך המפגש לא בטווח תקין.');
+        }
 
         // שומרים את האירוע (בלי מערך participants)
         const eventId = await ctx.db.insert("events", {
-            name: args.name,
+            name: eventName,
             date: args.date,
             ownerId: userId,
             isSettled: false,
@@ -41,13 +64,12 @@ export const getMyEvents = query({
         const participations = await ctx.db
             .query("eventParticipants")
             .withIndex("by_user", (q) => q.eq("userId", userId))
-            .collect();
+            .order("desc")
+            .take(MAX_EVENTS_PER_FEED);
 
         // שלב ב': הולכים לטבלת events ומביאים את המידע האמיתי עבור כל מפגש
         const events = await Promise.all(
-            participations.map(async (p) => {
-                return await ctx.db.get(p.eventId);
-            })
+            participations.map((p) => ctx.db.get(p.eventId))
         );
 
         // Type predicate tells TypeScript the filtered array is non-null,

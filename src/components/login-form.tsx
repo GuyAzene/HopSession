@@ -7,6 +7,7 @@ import { Field, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/f
 import { Input } from "@/components/ui/input"
 import { FormMessage } from "@/components/form-message"
 import { SocialButton } from "@/components/social-button"
+import { getErrorMessage } from "@/lib/errors"
 
 type Message = { type: "success" | "error"; text: string }
 
@@ -22,8 +23,10 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     try {
       await signIn("google")
       // Note: on successful OAuth, the page redirects — code below this line won't run
-    } catch {
-      setMessage({ type: "error", text: "ההתחברות עם גוגל נכשלה. נסה שוב." })
+    } catch (error) {
+      console.error("Google sign-in failed:", error)
+      const message = getErrorMessage(error, "ההתחברות עם גוגל נכשלה. נסה שוב.")
+      setMessage({ type: "error", text: message })
     } finally {
       // Runs on error; on success the page has already redirected
       setIsGoogleLoading(false)
@@ -37,8 +40,10 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     try {
       await signIn("resend", { email })
       setMessage({ type: "success", text: "לינק התחברות נשלח! בדקו את תיבת המייל שלכם." })
-    } catch {
-      setMessage({ type: "error", text: "משהו השתבש בעת שליחת המייל. אנא נסו שוב." })
+    } catch (error) {
+      console.error("Magic link sign-in failed:", error)
+      const message = getErrorMessage(error, "משהו השתבש בעת שליחת המייל. אנא נסו שוב.")
+      setMessage({ type: "error", text: message })
     } finally {
       setIsSending(false)
     }

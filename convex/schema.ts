@@ -22,7 +22,7 @@ const schema = defineSchema({
         .index("by_user", ["userId"])
         // אינדקס שמאפשר לשלוף בשניה את כל המשתתפים של מפגש ספציפי (לעמוד המפגש)
         .index("by_event", ["eventId"])
-        // אינדקס שמונע מהמשתמש להצטרף פעמיים לאותו מפגש
+        // אינדקס לשליפה מהירה לפי eventId+userId (לא ייחודי בפני עצמו)
         .index("by_event_and_user", ["eventId", "userId"]),
 
     drinks: defineTable({

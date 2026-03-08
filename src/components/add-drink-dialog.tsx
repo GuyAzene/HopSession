@@ -124,13 +124,19 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
         e.preventDefault();
         if (!state.beerName || !state.price) return;
 
+        const parsedPrice = Number.parseFloat(state.price);
+        if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+            dispatch({ type: 'SET_SUBMIT_ERROR', payload: 'המחיר חייב להיות מספר חיובי תקין.' });
+            return;
+        }
+
         dispatch({ type: 'SUBMIT_START' });
         try {
             await addDrink({
                 eventId,
                 beerName: state.beerName,
                 breweryName: state.breweryName || undefined,
-                price: parseFloat(state.price),
+                price: parsedPrice,
                 abv: state.abv,
                 rating: state.rating,
                 style: state.style,

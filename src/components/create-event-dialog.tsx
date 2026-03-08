@@ -66,7 +66,7 @@ export function CreateEventDialog() {
             // איפוס טופס אחרי הצלחה
             setEventName("");
             setEventDate(new Date());
-            setEventTime("20:30");
+            setEventTime("19:00");
             setIsOpen(false);
 
         } catch (err) {

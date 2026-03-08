@@ -3,6 +3,45 @@ import { v, ConvexError } from "convex/values";
 import * as cheerio from 'cheerio';
 import { requireAuth, requireEventAccess } from "./helpers";
 
+const ALLOWED_UNTAPPD_HOSTS = new Set([
+    'untappd.com',
+    'www.untappd.com',
+    'untp.beer',
+    'www.untp.beer',
+]);
+
+function validateUntappdUrl(rawUrl: string): string {
+    let parsedUrl: URL;
+
+    try {
+        parsedUrl = new URL(rawUrl);
+    } catch {
+        throw new ConvexError('הלינק לא תקין. נסה להדביק כתובת מלאה של Untappd.');
+    }
+
+    if (parsedUrl.protocol !== 'https:') {
+        throw new ConvexError('הלינק חייב להתחיל ב-https://');
+    }
+
+    if (!ALLOWED_UNTAPPD_HOSTS.has(parsedUrl.hostname)) {
+        throw new ConvexError('אפשר להדביק רק לינק של Untappd.');
+    }
+
+    const isUntappdBeerPage =
+        (parsedUrl.hostname === 'untappd.com' || parsedUrl.hostname === 'www.untappd.com') &&
+        parsedUrl.pathname.startsWith('/b/');
+
+    const isUntpShortLink =
+        (parsedUrl.hostname === 'untp.beer' || parsedUrl.hostname === 'www.untp.beer') &&
+        parsedUrl.pathname.length > 1;
+
+    if (!isUntappdBeerPage && !isUntpShortLink) {
+        throw new ConvexError('הלינק חייב להיות לדף בירה ב-Untappd (https://untappd.com/b/...).');
+    }
+
+    return parsedUrl.toString();
+}
+
 export const scrapeUntappdBeer = action({
     args: {
         untappdUrl: v.string(),
@@ -11,10 +50,7 @@ export const scrapeUntappdBeer = action({
         // Auth check — prevents unauthenticated callers from burning Firecrawl quota
         await requireAuth(ctx);
 
-        // // URL validation — only allow Untappd beer pages to prevent SSRF/abuse
-        // if (!args.untappdUrl.startsWith("https://untappd.com/") || !args.untappdUrl.startsWith("https://untp.beer/")) {
-        //     throw new Error("כתובת URL חייבת להיות מדף בירה של Untappd (https://untappd.com/b/...)");
-        // }
+        const untappdUrl = validateUntappdUrl(args.untappdUrl.trim());
 
         // --- 1. משיכת ה-HTML דרך Firecrawl (טוקן 1 בלבד) ---
         const apiUrl = 'https://api.firecrawl.dev/v2/scrape';
@@ -31,7 +67,7 @@ export const scrapeUntappdBeer = action({
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                url: args.untappdUrl,
+                url: untappdUrl,
                 formats: ["html"], // מבקשים רק HTML עכשיו!
                 onlyMainContent: false // חשוב להשאיר false כדי לא לאבד אלמנטים ב-DOM
             })
@@ -66,21 +102,34 @@ export const scrapeUntappdBeer = action({
             const style = $('.basic .name p.style').first().text().trim();
 
             // חילוץ דירוג
-            let rating = 0;
+            let rating: number | undefined;
             const dataRating = $('.caps').attr('data-rating');
             if (dataRating) {
-                rating = parseFloat(dataRating);
+                const parsedRating = parseFloat(dataRating);
+                if (Number.isFinite(parsedRating)) {
+                    rating = parsedRating;
+                }
             } else {
                 const numText = $('.num').first().text().trim();
                 const ratingMatch = numText.match(/\(([\d.]+)\)/);
-                if (ratingMatch) rating = parseFloat(ratingMatch[1]);
+                if (ratingMatch) {
+                    const parsedRating = parseFloat(ratingMatch[1]);
+                    if (Number.isFinite(parsedRating)) {
+                        rating = parsedRating;
+                    }
+                }
             }
 
             // חילוץ ABV
-            let abv = 0;
+            let abv: number | undefined;
             const abvText = $('.abv').first().text().trim();
             const abvMatch = abvText.match(/([\d.]+)%/);
-            if (abvMatch) abv = parseFloat(abvMatch[1]);
+            if (abvMatch) {
+                const parsedAbv = parseFloat(abvMatch[1]);
+                if (Number.isFinite(parsedAbv)) {
+                    abv = parsedAbv;
+                }
+            }
 
             // חילוץ תמונה
             let beerImageURL = $('.label.image-big').attr('data-image');
