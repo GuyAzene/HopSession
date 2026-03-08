@@ -9,6 +9,10 @@ import { BeerCard } from "@/components/beer-card"
 import { DebtRow } from "@/components/debt-row"
 import { Button } from "@/components/ui/button"
 import { AddDrinkDialog } from "@/components/add-drink-dialog"
+import { ParticipantsPopover } from '@/components/participants-popover'
+import { EventAdminDialog } from '@/components/event-admin-dialog'
+import { MyBeersDialog } from '@/components/my-beers-dialog'
+import { useCurrentUser } from '@/lib/hooks'
 
 export const Route = createFileRoute('/event/$eventId')({
     component: RouteComponent,
@@ -30,6 +34,8 @@ function RouteComponent() {
 
     // שליפת המשקאות של האירוע
     const drinks = useQuery(api.drinks.getDrinksByEvent, eventQueryArgs)
+    const participants = useQuery(api.events.getParticipantsSummary, eventQueryArgs)
+    const currentUser = useCurrentUser()
 
     if (!hasValidEventId) {
         return (
@@ -40,13 +46,17 @@ function RouteComponent() {
     }
 
     // מוודא שגם האירוע וגם המשקאות נטענו לפני הרינדור
-    if (event === undefined || drinks === undefined) {
+    if (event === undefined || drinks === undefined || participants === undefined || currentUser === undefined) {
         return (
             <div className="flex justify-center mt-20">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-text/50" />
             </div>
         )
     }
+
+    const isOwner = currentUser?._id === event.ownerId
+    const currentUserId = currentUser?._id ?? null
+    const participantNameById = new Map(participants.map((participant) => [participant.userId, participant.name]))
 
     // getEvent throws if not found (ErrorBoundary will catch it)
     const formattedDate = new Date(event.date).toLocaleDateString("he-IL", {
@@ -63,9 +73,14 @@ function RouteComponent() {
 
             {/* Header: כותרת, תאריך ומזהה */}
             <div className="flex flex-col gap-2">
-                <h2 className="text-3xl md:text-4xl font-black text-brand-text">{event.name}</h2>
-                <div className="flex items-center gap-4 text-brand-text/70">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-3xl md:text-4xl font-black text-brand-text">{event.name}</h2>
+                    {isOwner && <EventAdminDialog eventId={event._id} eventName={event.name} eventDate={event.date} />}
+                </div>
+                <div className="flex items-center gap-4 text-brand-text/70 flex-wrap">
                     <p>{formattedDate}</p>
+                    <ParticipantsPopover participants={participants} />
+                    <MyBeersDialog eventId={event._id} />
                 </div>
             </div>
 
@@ -103,7 +118,12 @@ function RouteComponent() {
                                 </div>
                             ) : (
                                 drinks.map((drink) => (
-                                    <BeerCard key={drink._id} beer={drink} />
+                                    <BeerCard
+                                        key={drink._id}
+                                        beer={drink}
+                                        payerName={participantNameById.get(drink.payerId) ?? 'משתתף'}
+                                        canManage={Boolean(currentUserId) && (drink.payerId === currentUserId || isOwner)}
+                                    />
                                 ))
                             )}
 

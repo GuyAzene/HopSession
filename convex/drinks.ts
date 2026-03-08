@@ -208,3 +208,121 @@ export const getDrinksByEvent = query({
             .collect();
     }
 });
+
+export const getMyDrinksByEvent = query({
+    args: { eventId: v.id('events') },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        await requireEventAccess(ctx, args.eventId, userId);
+
+        const drinks = await ctx.db
+            .query('drinks')
+            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .order('desc')
+            .collect();
+
+        return drinks.filter((drink) => drink.payerId === userId);
+    },
+});
+
+export const updateDrink = mutation({
+    args: {
+        drinkId: v.id('drinks'),
+        beerName: v.optional(v.string()),
+        breweryName: v.optional(v.string()),
+        price: v.optional(v.number()),
+        abv: v.optional(v.number()),
+        rating: v.optional(v.number()),
+        style: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const drink = await ctx.db.get(args.drinkId);
+
+        if (!drink) {
+            throw new ConvexError('הבירה לא נמצאה');
+        }
+
+        const event = await requireEventAccess(ctx, drink.eventId, userId);
+        const canManageDrink = drink.payerId === userId || event.ownerId === userId;
+
+        if (!canManageDrink) {
+            throw new ConvexError('אין לך הרשאה לערוך את הבירה הזו');
+        }
+
+        const updates: {
+            beerName?: string;
+            breweryName?: string;
+            price?: number;
+            abv?: number;
+            rating?: number;
+            style?: string;
+        } = {};
+
+        if (typeof args.beerName === 'string') {
+            const name = args.beerName.trim();
+            if (!name) {
+                throw new ConvexError('שם הבירה לא יכול להיות ריק');
+            }
+            updates.beerName = name;
+        }
+
+        if (typeof args.breweryName === 'string') {
+            updates.breweryName = args.breweryName.trim();
+        }
+
+        if (typeof args.price === 'number') {
+            if (!Number.isFinite(args.price) || args.price < 0) {
+                throw new ConvexError('המחיר חייב להיות מספר חיובי תקין');
+            }
+            updates.price = args.price;
+        }
+
+        if (typeof args.abv === 'number') {
+            if (!Number.isFinite(args.abv) || args.abv < 0 || args.abv > 100) {
+                throw new ConvexError('אחוז האלכוהול חייב להיות בין 0 ל-100');
+            }
+            updates.abv = args.abv;
+        }
+
+        if (typeof args.rating === 'number') {
+            if (!Number.isFinite(args.rating) || args.rating < 0 || args.rating > 5) {
+                throw new ConvexError('הדירוג חייב להיות בין 0 ל-5');
+            }
+            updates.rating = args.rating;
+        }
+
+        if (typeof args.style === 'string') {
+            updates.style = args.style.trim();
+        }
+
+        if (Object.keys(updates).length === 0) {
+            throw new ConvexError('לא נשלח מידע לעדכון הבירה');
+        }
+
+        await ctx.db.patch(args.drinkId, updates);
+    },
+});
+
+export const removeDrink = mutation({
+    args: {
+        drinkId: v.id('drinks'),
+    },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const drink = await ctx.db.get(args.drinkId);
+
+        if (!drink) {
+            throw new ConvexError('הבירה לא נמצאה');
+        }
+
+        const event = await requireEventAccess(ctx, drink.eventId, userId);
+        const canManageDrink = drink.payerId === userId || event.ownerId === userId;
+
+        if (!canManageDrink) {
+            throw new ConvexError('אין לך הרשאה למחוק את הבירה הזו');
+        }
+
+        await ctx.db.delete(args.drinkId);
+    },
+});

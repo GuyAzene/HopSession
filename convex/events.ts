@@ -1,7 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { requireAuth } from "./helpers";
+import { requireAuth, requireEventAccess } from "./helpers";
 
 const MAX_EVENTS_PER_FEED = 50;
 const MAX_EVENT_NAME_LENGTH = 80;
@@ -109,4 +109,139 @@ export const getEvent = query({
 
         return event;
     }
+});
+
+export const update = mutation({
+    args: {
+        eventId: v.id("events"),
+        name: v.optional(v.string()),
+        date: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const event = await ctx.db.get(args.eventId);
+
+        if (!event) {
+            throw new ConvexError('האירוע לא נמצא');
+        }
+
+        if (event.ownerId !== userId) {
+            throw new ConvexError('רק בעל האירוע יכול לערוך את פרטי המפגש');
+        }
+
+        const updates: { name?: string; date?: number } = {};
+
+        if (typeof args.name === 'string') {
+            const name = args.name.trim();
+            if (!name) {
+                throw new ConvexError('חובה להזין שם למפגש.');
+            }
+            if (name.length > MAX_EVENT_NAME_LENGTH) {
+                throw new ConvexError('שם המפגש ארוך מדי. עד 80 תווים.');
+            }
+            updates.name = name;
+        }
+
+        if (typeof args.date === 'number') {
+            const now = Date.now();
+            if (!Number.isFinite(args.date)) {
+                throw new ConvexError('תאריך המפגש לא תקין.');
+            }
+            if (args.date < now - EVENT_PAST_TOLERANCE_MS || args.date > now + EVENT_FUTURE_LIMIT_MS) {
+                throw new ConvexError('תאריך המפגש לא בטווח תקין.');
+            }
+            updates.date = args.date;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            throw new ConvexError('לא נשלח מידע לעדכון.');
+        }
+
+        await ctx.db.patch(args.eventId, updates);
+    },
+});
+
+export const remove = mutation({
+    args: {
+        eventId: v.id("events"),
+    },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const event = await ctx.db.get(args.eventId);
+
+        if (!event) {
+            throw new ConvexError('האירוע לא נמצא');
+        }
+
+        if (event.ownerId !== userId) {
+            throw new ConvexError('רק בעל האירוע יכול למחוק את המפגש');
+        }
+
+        const [drinks, participants] = await Promise.all([
+            ctx.db
+                .query('drinks')
+                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+                .collect(),
+            ctx.db
+                .query('eventParticipants')
+                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+                .collect(),
+        ]);
+
+        await Promise.all([
+            ...drinks.map((drink) => ctx.db.delete(drink._id)),
+            ...participants.map((participant) => ctx.db.delete(participant._id)),
+        ]);
+
+        await ctx.db.delete(args.eventId);
+    },
+});
+
+export const getParticipantsSummary = query({
+    args: {
+        eventId: v.id('events'),
+    },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        await requireEventAccess(ctx, args.eventId, userId);
+
+        const [participants, drinks] = await Promise.all([
+            ctx.db
+                .query('eventParticipants')
+                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+                .collect(),
+            ctx.db
+                .query('drinks')
+                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+                .collect(),
+        ]);
+
+        const statsByUserId = new Map<string, { beersBrought: number; totalSpent: number }>();
+
+        for (const drink of drinks) {
+            const key = drink.payerId;
+            const previous = statsByUserId.get(key) ?? { beersBrought: 0, totalSpent: 0 };
+            statsByUserId.set(key, {
+                beersBrought: previous.beersBrought + 1,
+                totalSpent: previous.totalSpent + drink.price,
+            });
+        }
+
+        const participantRows = await Promise.all(
+            participants.map(async (participant) => {
+                const participantUser = await ctx.db.get(participant.userId);
+                const stats = statsByUserId.get(participant.userId) ?? { beersBrought: 0, totalSpent: 0 };
+
+                return {
+                    userId: participant.userId,
+                    name: participantUser?.name ?? 'משתתף',
+                    image: participantUser?.image,
+                    beersBrought: stats.beersBrought,
+                    totalSpent: stats.totalSpent,
+                };
+            })
+        );
+
+        return participantRows.sort((a, b) => b.beersBrought - a.beersBrought);
+    },
 });
