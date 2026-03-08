@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from "convex/react"
 import { api } from "../../convex/_generated/api"
@@ -27,6 +27,11 @@ function RouteComponent() {
 
     // ניהול הסטייט של המודל
     const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false)
+    const [isAdminWrapped, setIsAdminWrapped] = useState(false)
+    const headerRowRef = useRef<HTMLDivElement | null>(null)
+    const titleRef = useRef<HTMLHeadingElement | null>(null)
+    const adminSlotRef = useRef<HTMLDivElement | null>(null)
+    const adminBaseWidthRef = useRef<number>(0)
 
     // שליפת פרטי האירוע
     // Note: getEvent throws for both not-found and auth errors (caught by ErrorBoundary)
@@ -36,6 +41,46 @@ function RouteComponent() {
     const drinks = useQuery(api.drinks.getDrinksByEvent, eventQueryArgs)
     const participants = useQuery(api.events.getParticipantsSummary, eventQueryArgs)
     const currentUser = useCurrentUser()
+
+    const isOwner = Boolean(event && currentUser && currentUser._id === event.ownerId)
+
+    useEffect(() => {
+        if (!hasValidEventId || event === undefined || currentUser === undefined || !isOwner) {
+            return
+        }
+
+        const headerRow = headerRowRef.current
+        const title = titleRef.current
+        const adminSlot = adminSlotRef.current
+        const adminButton = adminSlot?.querySelector('button')
+
+        if (!headerRow || !title || !adminSlot || !adminButton) {
+            return
+        }
+
+        if (adminBaseWidthRef.current === 0) {
+            adminBaseWidthRef.current = adminButton.getBoundingClientRect().width
+        }
+
+        const measure = () => {
+            const availableWidth = headerRow.getBoundingClientRect().width
+            const titleIntrinsicWidth = title.scrollWidth
+            const adminIntrinsicWidth = adminBaseWidthRef.current
+            const collisionGap = 12
+            setIsAdminWrapped(titleIntrinsicWidth + adminIntrinsicWidth + collisionGap > availableWidth)
+        }
+
+        const frameId = window.requestAnimationFrame(measure)
+
+        const resizeObserver = new ResizeObserver(measure)
+        resizeObserver.observe(headerRow)
+        resizeObserver.observe(title)
+
+        return () => {
+            window.cancelAnimationFrame(frameId)
+            resizeObserver.disconnect()
+        }
+    }, [hasValidEventId, event, currentUser, isOwner])
 
     if (!hasValidEventId) {
         return (
@@ -54,7 +99,6 @@ function RouteComponent() {
         )
     }
 
-    const isOwner = currentUser?._id === event.ownerId
     const currentUserId = currentUser?._id ?? null
     const participantNameById = new Map(participants.map((participant) => [participant.userId, participant.name]))
 
@@ -73,15 +117,17 @@ function RouteComponent() {
 
             {/* Header: כותרת, תאריך ומזהה */}
             <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <h2 className="text-3xl md:text-4xl font-black text-brand-text">{event.name}</h2>
+                <div ref={headerRowRef} className="flex flex-wrap items-start justify-between gap-3">
+                    <h2 ref={titleRef} className="text-3xl md:text-4xl font-black text-brand-text">{event.name}</h2>
                     {isOwner && (
-                        <EventAdminDialog
-                            eventId={event._id}
-                            eventName={event.name}
-                            eventDate={event.date}
-                            triggerClassName="w-full justify-center sm:w-auto"
-                        />
+                        <div ref={adminSlotRef} className={isAdminWrapped ? 'w-full' : ''}>
+                            <EventAdminDialog
+                                eventId={event._id}
+                                eventName={event.name}
+                                eventDate={event.date}
+                                triggerClassName={isAdminWrapped ? 'w-full justify-center' : ''}
+                            />
+                        </div>
                     )}
                 </div>
                 <div className="flex items-center gap-4 text-brand-text/70 flex-wrap">
