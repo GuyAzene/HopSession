@@ -1,5 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth, requireEventAccess } from "./helpers";
 
@@ -68,15 +69,18 @@ export const getMyEvents = query({
             .take(MAX_EVENTS_PER_FEED);
 
         // שלב ב': הולכים לטבלת events ומביאים את המידע האמיתי עבור כל מפגש
-        const events = await Promise.all(
-            participations.map((p) => ctx.db.get(p.eventId))
-        );
+        const events: Doc<'events'>[] = [];
+
+        for (const participation of participations) {
+            const event = await ctx.db.get(participation.eventId);
+            if (event) {
+                events.push(event);
+            }
+        }
 
         // Type predicate tells TypeScript the filtered array is non-null,
         // eliminating the need for ! assertions on the frontend
-        return events
-            .filter((e): e is NonNullable<typeof e> => e !== null)
-            .sort((a, b) => b.date - a.date);
+        return events.sort((a, b) => b.date - a.date);
     },
 });
 
@@ -162,36 +166,34 @@ export const update = mutation({
 });
 
 export const remove = mutation({
-    args: {
-        eventId: v.id("events"),
-    },
+    args: { eventId: v.id("events") },
     handler: async (ctx, args) => {
         const userId = await requireAuth(ctx);
         const event = await ctx.db.get(args.eventId);
 
         if (!event) {
-            throw new ConvexError('האירוע לא נמצא');
+            throw new ConvexError("האירוע לא נמצא");
         }
-
         if (event.ownerId !== userId) {
-            throw new ConvexError('רק בעל האירוע יכול למחוק את המפגש');
+            throw new ConvexError("רק בעל האירוע יכול למחוק את המפגש");
         }
 
-        const [drinks, participants] = await Promise.all([
-            ctx.db
-                .query('drinks')
-                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
-                .collect(),
-            ctx.db
-                .query('eventParticipants')
-                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
-                .collect(),
-        ]);
+        const drinks = await ctx.db
+            .query("drinks")
+            .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+            .collect();
 
-        await Promise.all([
-            ...drinks.map((drink) => ctx.db.delete(drink._id)),
-            ...participants.map((participant) => ctx.db.delete(participant._id)),
-        ]);
+        const participants = await ctx.db
+            .query("eventParticipants")
+            .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+            .collect();
+
+        for (const drink of drinks) {
+            await ctx.db.delete(drink._id);
+        }
+        for (const participant of participants) {
+            await ctx.db.delete(participant._id);
+        }
 
         await ctx.db.delete(args.eventId);
     },
@@ -205,16 +207,15 @@ export const getParticipantsSummary = query({
         const userId = await requireAuth(ctx);
         await requireEventAccess(ctx, args.eventId, userId);
 
-        const [participants, drinks] = await Promise.all([
-            ctx.db
-                .query('eventParticipants')
-                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
-                .collect(),
-            ctx.db
-                .query('drinks')
-                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
-                .collect(),
-        ]);
+        const participants = await ctx.db
+            .query('eventParticipants')
+            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .collect();
+
+        const drinks = await ctx.db
+            .query('drinks')
+            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .collect();
 
         const statsByUserId = new Map<string, { beersBrought: number; totalSpent: number }>();
 
@@ -227,20 +228,26 @@ export const getParticipantsSummary = query({
             });
         }
 
-        const participantRows = await Promise.all(
-            participants.map(async (participant) => {
-                const participantUser = await ctx.db.get(participant.userId);
-                const stats = statsByUserId.get(participant.userId) ?? { beersBrought: 0, totalSpent: 0 };
+        const participantRows: {
+            userId: string;
+            name: string;
+            image?: string;
+            beersBrought: number;
+            totalSpent: number;
+        }[] = [];
 
-                return {
-                    userId: participant.userId,
-                    name: participantUser?.name ?? 'משתתף',
-                    image: participantUser?.image,
-                    beersBrought: stats.beersBrought,
-                    totalSpent: stats.totalSpent,
-                };
-            })
-        );
+        for (const participant of participants) {
+            const participantUser = await ctx.db.get(participant.userId);
+            const stats = statsByUserId.get(participant.userId) ?? { beersBrought: 0, totalSpent: 0 };
+
+            participantRows.push({
+                userId: participant.userId,
+                name: participantUser?.name ?? 'משתתף',
+                image: participantUser?.image,
+                beersBrought: stats.beersBrought,
+                totalSpent: stats.totalSpent,
+            });
+        }
 
         return participantRows.sort((a, b) => b.beersBrought - a.beersBrought);
     },
