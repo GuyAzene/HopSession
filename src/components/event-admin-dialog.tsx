@@ -29,9 +29,10 @@ interface EventAdminDialogProps {
     eventId: Id<'events'>;
     eventName: string;
     eventDate: number;
+    triggerClassName?: string;
 }
 
-export function EventAdminDialog({ eventId, eventName, eventDate }: EventAdminDialogProps) {
+export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassName }: EventAdminDialogProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [name, setName] = useState(eventName);
     const [date, setDate] = useState<Date | undefined>(new Date(eventDate));
@@ -120,7 +121,10 @@ export function EventAdminDialog({ eventId, eventName, eventDate }: EventAdminDi
             }}
         >
             <DialogTrigger asChild>
-                <Button variant="outline" className="border-brand-text/20 text-brand-text hover:bg-brand-text/5">
+                <Button
+                    variant="outline"
+                    className={cn('border-brand-text/20 text-brand-text hover:bg-brand-text/5', triggerClassName)}
+                >
                     <Settings2 className="h-4 w-4" />
                     ניהול מפגש
                 </Button>

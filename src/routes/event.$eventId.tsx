@@ -73,9 +73,16 @@ function RouteComponent() {
 
             {/* Header: כותרת, תאריך ומזהה */}
             <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                     <h2 className="text-3xl md:text-4xl font-black text-brand-text">{event.name}</h2>
-                    {isOwner && <EventAdminDialog eventId={event._id} eventName={event.name} eventDate={event.date} />}
+                    {isOwner && (
+                        <EventAdminDialog
+                            eventId={event._id}
+                            eventName={event.name}
+                            eventDate={event.date}
+                            triggerClassName="w-full justify-center sm:w-auto"
+                        />
+                    )}
                 </div>
                 <div className="flex items-center gap-4 text-brand-text/70 flex-wrap">
                     <p>{formattedDate}</p>
