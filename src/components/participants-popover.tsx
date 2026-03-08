@@ -57,7 +57,7 @@ export function ParticipantsPopover({ participants, className }: ParticipantsPop
                                 <span className="text-sm font-medium text-brand-text">{participant.name}</span>
                             </div>
 
-                            <div className="text-left" dir="ltr">
+                            <div className="text-left" dir="rtl">
                                 <p className="text-xs text-brand-text/60">{participant.beersBrought} בירות</p>
                                 <p className="text-xs font-semibold text-brand-text">₪{participant.totalSpent.toFixed(2)}</p>
                             </div>
