@@ -79,8 +79,6 @@ function RouteComponent() {
                 </div>
                 <div className="flex items-center gap-4 text-brand-text/70 flex-wrap">
                     <p>{formattedDate}</p>
-                    <ParticipantsPopover participants={participants} />
-                    <MyBeersDialog eventId={event._id} />
                 </div>
             </div>
 
@@ -91,20 +89,31 @@ function RouteComponent() {
                 <div className="lg:col-span-2 flex flex-col gap-4">
 
                     {/* כותרת רשימת הבירות + כפתור הוספה (flex-between) */}
-                    <div className="flex items-center justify-between border-b border-brand-text/10 pb-2">
+                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-brand-text/10 pb-2">
                         <div className="flex items-center gap-2">
                             <Beer className="h-6 w-6 text-brand-text" />
                             <h3 className="text-2xl font-bold text-brand-text">תפריט הטעימות</h3>
                         </div>
 
-                        <Button
-                            onClick={() => setIsAddDrinkOpen(true)}
-                            size="sm"
-                            className="bg-brand-text text-brand-bg hover:bg-brand-text/90 flex items-center gap-1.5"
-                        >
-                            <Plus className="h-4 w-4" />
-                            הוסף בירה
-                        </Button>
+                        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                            <ParticipantsPopover
+                                participants={participants}
+                                className="w-full justify-center sm:w-auto"
+                            />
+                            <MyBeersDialog
+                                eventId={event._id}
+                                triggerClassName="w-full justify-center sm:w-auto"
+                            />
+
+                            <Button
+                                onClick={() => setIsAddDrinkOpen(true)}
+                                size="sm"
+                                className="w-full justify-center bg-brand-text text-brand-bg hover:bg-brand-text/90 sm:w-auto"
+                            >
+                                <Plus className="h-4 w-4" />
+                                הוסף בירה
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Dynamic height instead of hardcoded h-150 */}

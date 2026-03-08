@@ -2,6 +2,7 @@ import { Users } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
     Popover,
     PopoverContent,
@@ -21,13 +22,17 @@ interface ParticipantSummary {
 
 interface ParticipantsPopoverProps {
     participants: ParticipantSummary[];
+    className?: string;
 }
 
-export function ParticipantsPopover({ participants }: ParticipantsPopoverProps) {
+export function ParticipantsPopover({ participants, className }: ParticipantsPopoverProps) {
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <Button variant="outline" className="h-9 border-brand-text/20 bg-brand-surface text-brand-text hover:bg-brand-text/5">
+                <Button
+                    variant="outline"
+                    className={cn('h-9 border-brand-text/20 bg-brand-surface text-brand-text hover:bg-brand-text/5', className)}
+                >
                     <Users className="h-4 w-4" />
                     {participants.length} משתתפים
                 </Button>

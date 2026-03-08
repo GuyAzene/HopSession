@@ -5,6 +5,7 @@ import { Beer, Loader2, PencilLine, Trash2 } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { getErrorMessage } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,6 +20,7 @@ import { Input } from '@/components/ui/input';
 
 interface MyBeersDialogProps {
     eventId: Id<'events'>;
+    triggerClassName?: string;
 }
 
 interface EditingState {
@@ -28,7 +30,7 @@ interface EditingState {
     price: string;
 }
 
-export function MyBeersDialog({ eventId }: MyBeersDialogProps) {
+export function MyBeersDialog({ eventId, triggerClassName }: MyBeersDialogProps) {
     const drinks = useQuery(api.drinks.getMyDrinksByEvent, { eventId });
     const updateDrink = useMutation(api.drinks.updateDrink);
     const removeDrink = useMutation(api.drinks.removeDrink);
@@ -109,7 +111,10 @@ export function MyBeersDialog({ eventId }: MyBeersDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="border-brand-text/20 text-brand-text hover:bg-brand-text/5">
+                <Button
+                    variant="outline"
+                    className={cn('border-brand-text/20 text-brand-text hover:bg-brand-text/5', triggerClassName)}
+                >
                     <Beer className="h-4 w-4" />
                     הבירות שלי {drinks ? `(${drinks.length})` : ''}
                 </Button>
