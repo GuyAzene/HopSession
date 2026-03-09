@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import {Outlet, createRootRouteWithContext} from '@tanstack/react-router'
+import {Outlet, createRootRouteWithContext, useRouterState} from '@tanstack/react-router'
 import { useConvexAuth } from "convex/react"
 import type { ConvexReactClient } from 'convex/react'
 
@@ -26,6 +26,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 function RootComponent() {
     const { isAuthenticated, isLoading } = useConvexAuth();
+    const pathname = useRouterState({ select: (s) => s.location.pathname });
 
     if (isLoading) {
         return <BeerLoadingScreen />;
@@ -46,7 +47,7 @@ function RootComponent() {
 
             <main className="flex-1 p-4">
                 {/* ErrorBoundary catches throws from Convex queries (e.g. auth errors) */}
-                <ErrorBoundary>
+                <ErrorBoundary key={pathname}>
                     <Outlet />
                 </ErrorBoundary>
             </main>

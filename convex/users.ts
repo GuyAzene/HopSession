@@ -27,7 +27,7 @@ export const updateProfile = mutation({
         if (userId === null) throw new ConvexError("חובה להתחבר");
 
         await ctx.db.patch(userId, {
-            name: args.name,
+            name: args.name.trim(),
             phone: args.phone,
         });
     },

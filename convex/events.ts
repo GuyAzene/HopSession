@@ -80,7 +80,7 @@ export const getMyEvents = query({
 
         // Type predicate tells TypeScript the filtered array is non-null,
         // eliminating the need for ! assertions on the frontend
-        return events.sort((a, b) => b.date - a.date);
+        return events.sort((a, b) => a.date - b.date);
     },
 });
 
@@ -346,6 +346,10 @@ export const removeParticipant = mutation({
             throw new ConvexError('האירוע לא נמצא');
         }
 
+        if (event.isSettled) {
+            throw new ConvexError('לא ניתן להסיר משתתפים מאירוע שסוכם');
+        }
+
         const canRemoveParticipant = args.userId === userId || event.ownerId === userId;
         if (!canRemoveParticipant) {
             throw new ConvexError('אין לך הרשאה להסיר את המשתתף הזה');
@@ -364,12 +368,10 @@ export const removeParticipant = mutation({
             throw new ConvexError('המשתתף לא נמצא במפגש');
         }
 
-        const drinks = await ctx.db
+        const participantDrinks = await ctx.db
             .query('drinks')
-            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .withIndex('by_event_and_payer', (q) => q.eq('eventId', args.eventId).eq('payerId', args.userId))
             .collect();
-
-        const participantDrinks = drinks.filter((drink) => drink.payerId === args.userId);
 
         for (const drink of participantDrinks) {
             await ctx.db.delete(drink._id);

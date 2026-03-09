@@ -38,7 +38,8 @@ const schema = defineSchema({
         price: v.number(),                               //manually added
         consumers: v.array(v.id("users")),    //auto added
     })
-        .index("by_event", ["eventId"]),
+        .index("by_event", ["eventId"])
+        .index("by_event_and_payer", ["eventId", "payerId"]),
 });
 
 export default schema;

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from "convex/react"
 import { api } from "../../convex/_generated/api"
@@ -44,6 +44,12 @@ function RouteComponent() {
 
     const isOwner = Boolean(event && currentUser && currentUser._id === event.ownerId)
 
+    // חייב להיות לפני כל early return — Rules of Hooks
+    const participantNameById = useMemo(
+        () => new Map((participants ?? []).map((participant) => [participant.userId, participant.name])),
+        [participants]
+    )
+
     if (!hasValidEventId) {
         return (
             <div className="flex justify-center mt-20">
@@ -62,7 +68,6 @@ function RouteComponent() {
     }
 
     const currentUserId = currentUser._id
-    const participantNameById = new Map(participants.map((participant) => [participant.userId, participant.name]))
 
     // getEvent throws if not found (ErrorBoundary will catch it)
     const formattedDate = new Date(event.date).toLocaleDateString("he-IL", {
@@ -92,7 +97,10 @@ function RouteComponent() {
                 eventId: event._id,
                 userId: currentUserId,
             })
-            window.location.assign('/')
+            // hard redirect — כשעוזבים אירוע, Convex כבר עדכן את ה-subscriptions לפני שה-promise
+            // הסתיים, ולכן router.navigate גורם ל-ErrorBoundary לתפוס שגיאת הרשאה. window.location
+            // מנווט לפני שהקומפוננטה מרנדרת שוב.
+            window.location.href = '/'
         } catch (err) {
             setLeaveError(getErrorMessage(err, 'לא הצלחנו לעזוב את המפגש כרגע. נסה שוב.'))
         } finally {

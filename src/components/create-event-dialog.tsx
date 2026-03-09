@@ -58,6 +58,13 @@ export function CreateEventDialog() {
         try {
             const finalDateTime = combineDateAndTime(eventDate, eventTime);
 
+            // בדיקה שתאריך + שעה לא בעבר
+            if (finalDateTime < new Date()) {
+                setError('תאריך ושעת האירוע לא יכולים להיות בעבר');
+                setIsSubmitting(false);
+                return;
+            }
+
             await createEvent({
                 name: eventName,
                 date: finalDateTime.getTime(),

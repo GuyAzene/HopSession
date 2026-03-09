@@ -172,15 +172,25 @@ export const addDrink = mutation({
     handler: async (ctx, args) => {
         const userId = await requireAuth(ctx);
 
-        // Server-side price validation — client-side min="0" is bypassable
-        if (args.price < 0) throw new ConvexError("המחיר חייב להיות חיובי");
+        const beerName = args.beerName.trim();
+        if (!beerName) throw new ConvexError('שם הבירה לא יכול להיות ריק');
+
+        if (!Number.isFinite(args.price) || args.price < 0) throw new ConvexError('המחיר חייב להיות מספר חיובי תקין');
+
+        if (typeof args.abv === 'number' && (!Number.isFinite(args.abv) || args.abv < 0 || args.abv > 100)) {
+            throw new ConvexError('אחוז האלכוהול חייב להיות בין 0 ל-100');
+        }
+
+        if (typeof args.rating === 'number' && (!Number.isFinite(args.rating) || args.rating < 0 || args.rating > 5)) {
+            throw new ConvexError('הדירוג חייב להיות בין 0 ל-5');
+        }
 
         await requireEventAccess(ctx, args.eventId, userId);
 
         return await ctx.db.insert("drinks", {
             eventId: args.eventId,
             payerId: userId,
-            beerName: args.beerName,
+            beerName,
             breweryName: args.breweryName,
             price: args.price,
             abv: args.abv,
@@ -215,13 +225,11 @@ export const getMyDrinksByEvent = query({
         const userId = await requireAuth(ctx);
         await requireEventAccess(ctx, args.eventId, userId);
 
-        const drinks = await ctx.db
+        return await ctx.db
             .query('drinks')
-            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .withIndex('by_event_and_payer', (q) => q.eq('eventId', args.eventId).eq('payerId', userId))
             .order('desc')
             .collect();
-
-        return drinks.filter((drink) => drink.payerId === userId);
     },
 });
 

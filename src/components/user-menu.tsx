@@ -40,7 +40,7 @@ export function UserMenu({ user }: UserMenuProps) {
                 {user.name}
             </span>
 
-            <DropdownMenu dir="rtl">
+            <DropdownMenu dir="rtl" onOpenChange={(open) => { if (!open) setSignOutError(null); }}>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full hover:bg-brand-text/5">
                         <Avatar>
