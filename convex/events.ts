@@ -332,3 +332,50 @@ export const addParticipant = mutation({
         };
     },
 });
+
+export const removeParticipant = mutation({
+    args: {
+        eventId: v.id('events'),
+        userId: v.id('users'),
+    },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const event = await ctx.db.get(args.eventId);
+
+        if (!event) {
+            throw new ConvexError('האירוע לא נמצא');
+        }
+
+        const canRemoveParticipant = args.userId === userId || event.ownerId === userId;
+        if (!canRemoveParticipant) {
+            throw new ConvexError('אין לך הרשאה להסיר את המשתתף הזה');
+        }
+
+        if (args.userId === event.ownerId) {
+            throw new ConvexError('בעל המפגש לא יכול לעזוב את המפגש שלו');
+        }
+
+        const participation = await ctx.db
+            .query('eventParticipants')
+            .withIndex('by_event_and_user', (q) => q.eq('eventId', args.eventId).eq('userId', args.userId))
+            .first();
+
+        if (!participation) {
+            throw new ConvexError('המשתתף לא נמצא במפגש');
+        }
+
+        const drinks = await ctx.db
+            .query('drinks')
+            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .collect();
+
+        const participantDrinks = drinks.filter((drink) => drink.payerId === args.userId);
+
+        for (const drink of participantDrinks) {
+            await ctx.db.delete(drink._id);
+        }
+
+        await ctx.db.delete(participation._id);
+    },
+
+});

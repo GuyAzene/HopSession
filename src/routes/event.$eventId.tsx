@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
-import { Loader2, Beer, Receipt, Plus } from "lucide-react"
+import { Loader2, Beer, Receipt, Plus, LogOut } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { BeerCard } from "@/components/beer-card"
 import { DebtRow } from "@/components/debt-row"
@@ -12,6 +12,8 @@ import { AddDrinkDialog } from "@/components/add-drink-dialog"
 import { ParticipantsPopover } from '@/components/participants-popover'
 import { EventAdminDialog } from '@/components/event-admin-dialog'
 import { MyBeersDialog } from '@/components/my-beers-dialog'
+import { InviteLinkPopover } from '@/components/invite-link-popover'
+import { getErrorMessage } from '@/lib/errors'
 import { useCurrentUser } from '@/lib/hooks'
 
 export const Route = createFileRoute('/event/$eventId')({
@@ -27,11 +29,8 @@ function RouteComponent() {
 
     // ניהול הסטייט של המודל
     const [isAddDrinkOpen, setIsAddDrinkOpen] = useState(false)
-    const [isAdminWrapped, setIsAdminWrapped] = useState(false)
-    const headerRowRef = useRef<HTMLDivElement | null>(null)
-    const titleRef = useRef<HTMLHeadingElement | null>(null)
-    const adminSlotRef = useRef<HTMLDivElement | null>(null)
-    const adminBaseWidthRef = useRef<number>(0)
+    const [isLeaving, setIsLeaving] = useState(false)
+    const [leaveError, setLeaveError] = useState<string | null>(null)
 
     // שליפת פרטי האירוע
     // Note: getEvent throws for both not-found and auth errors (caught by ErrorBoundary)
@@ -40,47 +39,10 @@ function RouteComponent() {
     // שליפת המשקאות של האירוע
     const drinks = useQuery(api.drinks.getDrinksByEvent, eventQueryArgs)
     const participants = useQuery(api.events.getParticipantsSummary, eventQueryArgs)
+    const removeParticipant = useMutation(api.events.removeParticipant)
     const currentUser = useCurrentUser()
 
     const isOwner = Boolean(event && currentUser && currentUser._id === event.ownerId)
-
-    useEffect(() => {
-        if (!hasValidEventId || event === undefined || currentUser === undefined || !isOwner) {
-            return
-        }
-
-        const headerRow = headerRowRef.current
-        const title = titleRef.current
-        const adminSlot = adminSlotRef.current
-        const adminButton = adminSlot?.querySelector('button')
-
-        if (!headerRow || !title || !adminSlot || !adminButton) {
-            return
-        }
-
-        if (adminBaseWidthRef.current === 0) {
-            adminBaseWidthRef.current = adminButton.getBoundingClientRect().width
-        }
-
-        const measure = () => {
-            const availableWidth = headerRow.getBoundingClientRect().width
-            const titleIntrinsicWidth = title.scrollWidth
-            const adminIntrinsicWidth = adminBaseWidthRef.current
-            const collisionGap = 12
-            setIsAdminWrapped(titleIntrinsicWidth + adminIntrinsicWidth + collisionGap > availableWidth)
-        }
-
-        const frameId = window.requestAnimationFrame(measure)
-
-        const resizeObserver = new ResizeObserver(measure)
-        resizeObserver.observe(headerRow)
-        resizeObserver.observe(title)
-
-        return () => {
-            window.cancelAnimationFrame(frameId)
-            resizeObserver.disconnect()
-        }
-    }, [hasValidEventId, event, currentUser, isOwner])
 
     if (!hasValidEventId) {
         return (
@@ -91,7 +53,7 @@ function RouteComponent() {
     }
 
     // מוודא שגם האירוע וגם המשקאות נטענו לפני הרינדור
-    if (event === undefined || drinks === undefined || participants === undefined || currentUser === undefined) {
+    if (event === undefined || drinks === undefined || participants === undefined || currentUser === undefined || currentUser === null) {
         return (
             <div className="flex justify-center mt-20">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-text/50" />
@@ -99,7 +61,7 @@ function RouteComponent() {
         )
     }
 
-    const currentUserId = currentUser?._id ?? null
+    const currentUserId = currentUser._id
     const participantNameById = new Map(participants.map((participant) => [participant.userId, participant.name]))
 
     // getEvent throws if not found (ErrorBoundary will catch it)
@@ -112,24 +74,72 @@ function RouteComponent() {
         minute: 'numeric',
     });
 
+    const handleLeaveEvent = async () => {
+        if (!currentUserId) {
+            return
+        }
+
+        const shouldLeave = window.confirm('לעזוב את המפגש? כל הבירות שהוספת יימחקו מהמפגש.')
+        if (!shouldLeave) {
+            return
+        }
+
+        setIsLeaving(true)
+        setLeaveError(null)
+
+        try {
+            await removeParticipant({
+                eventId: event._id,
+                userId: currentUserId,
+            })
+            window.location.assign('/')
+        } catch (err) {
+            setLeaveError(getErrorMessage(err, 'לא הצלחנו לעזוב את המפגש כרגע. נסה שוב.'))
+        } finally {
+            setIsLeaving(false)
+        }
+    }
+
     return (
         <div className="flex flex-col gap-8 mt-4 md:mt-8 max-w-7xl mx-auto px-4">
 
             {/* Header: כותרת, תאריך ומזהה */}
             <div className="flex flex-col gap-2">
-                <div ref={headerRowRef} className="flex flex-wrap items-start justify-between gap-3">
-                    <h2 ref={titleRef} className="text-3xl md:text-4xl font-black text-brand-text">{event.name}</h2>
-                    {isOwner && (
-                        <div ref={adminSlotRef} className={isAdminWrapped ? 'w-full' : ''}>
-                            <EventAdminDialog
-                                eventId={event._id}
-                                eventName={event.name}
-                                eventDate={event.date}
-                                triggerClassName={isAdminWrapped ? 'w-full justify-center' : ''}
-                            />
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <h2 className="min-w-0 flex-1 text-3xl md:text-4xl font-black text-brand-text break-words">{event.name}</h2>
+                    {currentUserId && (
+                        <div className="w-full sm:w-auto sm:flex-none">
+                            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                                {isOwner ? (
+                                    <>
+                                        <InviteLinkPopover
+                                            eventId={event._id}
+                                            className="w-full justify-center sm:w-auto"
+                                        />
+                                        <EventAdminDialog
+                                            eventId={event._id}
+                                            eventName={event.name}
+                                            eventDate={event.date}
+                                            triggerClassName="w-full justify-center sm:w-auto"
+                                        />
+                                    </>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={isLeaving}
+                                        onClick={handleLeaveEvent}
+                                        className="w-full justify-center border-brand-error/30 text-brand-error hover:bg-brand-error/10 sm:w-auto"
+                                    >
+                                        {isLeaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                                        עזוב מפגש
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
+                {leaveError && <p className="text-sm text-brand-error">{leaveError}</p>}
                 <div className="flex items-center gap-4 text-brand-text/70 flex-wrap">
                     <p>{formattedDate}</p>
                 </div>
@@ -150,7 +160,10 @@ function RouteComponent() {
 
                         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                             <ParticipantsPopover
+                                eventId={event._id}
                                 participants={participants}
+                                currentUserId={currentUserId}
+                                canManageParticipants={isOwner}
                                 className="w-full justify-center sm:w-auto"
                             />
                             <MyBeersDialog

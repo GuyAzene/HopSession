@@ -1,7 +1,12 @@
-import { Users } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, Trash2, Users } from 'lucide-react';
+import { useMutation } from 'convex/react';
 
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import {
     Popover,
@@ -21,11 +26,45 @@ interface ParticipantSummary {
 }
 
 interface ParticipantsPopoverProps {
+    eventId: Id<'events'>;
     participants: ParticipantSummary[];
+    currentUserId: Id<'users'>;
+    canManageParticipants?: boolean;
     className?: string;
 }
 
-export function ParticipantsPopover({ participants, className }: ParticipantsPopoverProps) {
+export function ParticipantsPopover({
+    eventId,
+    participants,
+    currentUserId,
+    canManageParticipants = false,
+    className,
+}: ParticipantsPopoverProps) {
+    const removeParticipant = useMutation(api.events.removeParticipant);
+    const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleRemoveParticipant = async (participantUserId: string, participantName: string) => {
+        const shouldRemove = window.confirm(`להסיר את ${participantName} מהמפגש?`);
+        if (!shouldRemove) {
+            return;
+        }
+
+        setRemovingUserId(participantUserId);
+        setError(null);
+
+        try {
+            await removeParticipant({
+                eventId,
+                userId: participantUserId as Id<'users'>,
+            });
+        } catch (err) {
+            setError(getErrorMessage(err, 'הסרת המשתתף נכשלה. נסה שוב.'));
+        } finally {
+            setRemovingUserId(null);
+        }
+    };
+
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -61,9 +100,27 @@ export function ParticipantsPopover({ participants, className }: ParticipantsPop
                                 <p className="text-xs text-brand-text/60">{participant.beersBrought} בירות</p>
                                 <p className="text-xs font-semibold text-brand-text">₪{participant.totalSpent.toFixed(2)}</p>
                             </div>
+
+                            {canManageParticipants && participant.userId !== currentUserId && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={removingUserId === participant.userId}
+                                    onClick={() => handleRemoveParticipant(participant.userId, participant.name)}
+                                    className="h-8 w-8 text-brand-error hover:bg-brand-error/10"
+                                >
+                                    {removingUserId === participant.userId ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     ))}
                 </div>
+
+                {error && <p className="mt-3 text-xs text-brand-error">{error}</p>}
             </PopoverContent>
         </Popover>
     );
