@@ -1,10 +1,12 @@
 import React, { Suspense } from 'react'
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import {Outlet, createRootRouteWithContext} from '@tanstack/react-router'
 import { useConvexAuth } from "convex/react"
+import type { ConvexReactClient } from 'convex/react'
 
 import { WelcomeScreen } from "@/components/welcome-screen"
 import { Navbar } from "@/components/navbar"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { BeerLoadingScreen } from '@/components/beer-loading-screen'
 
 // טוען את ה-Devtools רק אם אנחנו לא בסביבת פרודקשן (חוסך המון משקל מהקוד החי!)
 const TanStackRouterDevtools = import.meta.env.PROD
@@ -15,19 +17,18 @@ const TanStackRouterDevtools = import.meta.env.PROD
         }))
     )
 
-export const Route = createRootRoute({
+interface RouterContext {
+    convex: ConvexReactClient
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
     component: RootComponent,
 })
-
 function RootComponent() {
     const { isAuthenticated, isLoading } = useConvexAuth();
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-brand-bg text-brand-text">
-                <p className="text-brand-text/70 animate-pulse text-lg font-medium">מוזג בירה... 🍺</p>
-            </div>
-        );
+        return <BeerLoadingScreen />;
     }
 
     if (!isAuthenticated) {

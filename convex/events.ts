@@ -1,5 +1,5 @@
 import { v, ConvexError } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import {mutation, query} from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth, requireEventAccess } from "./helpers";
@@ -250,5 +250,85 @@ export const getParticipantsSummary = query({
         }
 
         return participantRows.sort((a, b) => b.beersBrought - a.beersBrought);
+    },
+});
+
+export const getInviteDetails = query({
+    args: { eventId: v.id('events') },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const event = await ctx.db.get(args.eventId);
+
+
+        if (!event) {
+            throw new ConvexError('האירוע לא נמצא');
+        }
+
+        const owner = await ctx.db.get(event.ownerId);
+        const ownerName = owner?.name ?? 'משתמש';
+
+        const participation = await ctx.db
+            .query('eventParticipants')
+            .withIndex('by_event_and_user', (q) => q.eq('eventId', args.eventId).eq('userId', userId))
+            .first();
+
+        const now = Date.now();
+        const canJoin = !(event.isSettled || event.date < now);
+        const joinBlockedReason = !canJoin
+            ? event.isSettled
+                ? 'אי אפשר להצטרף למפגש שסוכם.'
+                : 'אי אפשר להצטרף למפגש שכבר הסתיים.'
+            : null;
+
+        return {
+            name: event.name,
+            date: event.date,
+            ownerName,
+            alreadyParticipant: Boolean(participation),
+            canJoin,
+            joinBlockedReason,
+        };
+    },
+});
+
+export const addParticipant = mutation({
+    args: { eventId: v.id('events') },
+    handler: async (ctx, args) => {
+        const userId = await requireAuth(ctx);
+        const event = await ctx.db.get(args.eventId);
+
+        if (!event) {
+            throw new ConvexError('האירוע לא נמצא');
+        }
+
+        const participation = await ctx.db
+            .query('eventParticipants')
+            .withIndex('by_event_and_user', (q) => q.eq('eventId', args.eventId).eq('userId', userId))
+            .first();
+
+        if (participation) {
+            return {
+                participationId: participation._id,
+                alreadyParticipant: true,
+            };
+        }
+
+        if (event.isSettled) {
+            throw new ConvexError('אי אפשר להצטרף למפגש שסוכם.');
+        }
+
+        if (event.date < Date.now()) {
+            throw new ConvexError('אי אפשר להצטרף למפגש שכבר הסתיים.');
+        }
+
+        const participationId = await ctx.db.insert('eventParticipants', {
+            eventId: args.eventId,
+            userId,
+        });
+
+        return {
+            participationId,
+            alreadyParticipant: false,
+        };
     },
 });
