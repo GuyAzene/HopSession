@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as debts from "../debts.js";
 import type * as drinks from "../drinks.js";
 import type * as events from "../events.js";
 import type * as helpers from "../helpers.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  debts: typeof debts;
   drinks: typeof drinks;
   events: typeof events;
   helpers: typeof helpers;
