@@ -39,6 +39,7 @@ function RouteComponent() {
     // שליפת המשקאות של האירוע
     const drinks = useQuery(api.drinks.getDrinksByEvent, eventQueryArgs)
     const participants = useQuery(api.events.getParticipantsSummary, eventQueryArgs)
+    const debts = useQuery(api.debts.getEventDebts, eventQueryArgs)
     const removeParticipant = useMutation(api.events.removeParticipant)
     const currentUser = useCurrentUser()
 
@@ -59,7 +60,7 @@ function RouteComponent() {
     }
 
     // מוודא שגם האירוע וגם המשקאות נטענו לפני הרינדור
-    if (event === undefined || drinks === undefined || participants === undefined || currentUser === undefined || currentUser === null) {
+    if (event === undefined || drinks === undefined || participants === undefined || debts === undefined || currentUser === undefined || currentUser === null) {
         return (
             <div className="flex justify-center mt-20">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-text/50" />
@@ -229,8 +230,24 @@ function RouteComponent() {
                         <p className="text-brand-text/60 text-sm">סיכום ביניים של ההוצאות והחובות למפגש זה.</p>
 
                         <div className="flex flex-col gap-3 mt-2">
-                            <DebtRow variant="owed" person="יוסי משלם לך" amount={17} />
-                            <DebtRow variant="owing" person="אתה משלם לדני" amount={23} />
+                            {debts.filter(d => d.from === currentUserId || d.to === currentUserId).length === 0 ? (
+                                <p className="text-sm text-brand-text/50">אין חובות — הכל מסודר!</p>
+                            ) : (
+                                debts
+                                    .filter(d => d.from === currentUserId || d.to === currentUserId)
+                                    .map((d, i) => {
+                                        const youOwe = d.from === currentUserId;
+                                        const otherPersonId = youOwe ? d.to : d.from;
+                                        return (
+                                            <DebtRow
+                                                key={i}
+                                                personName={participantNameById.get(otherPersonId) ?? 'משתתף'}
+                                                amount={d.amount}
+                                                youOwe={youOwe}
+                                            />
+                                        );
+                                    })
+                            )}
                         </div>
                     </div>
                 </div>

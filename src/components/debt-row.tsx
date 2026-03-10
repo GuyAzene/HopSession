@@ -1,24 +1,22 @@
-type DebtVariant = "owed" | "owing"
-
 interface DebtRowProps {
-    variant: DebtVariant;
-    person: string;
+    personName: string;
     amount: number;
+    youOwe: boolean; // true = you owe them, false = they owe you
 }
 
-export function DebtRow({ variant, person, amount }: DebtRowProps) {
-    const isOwed = variant === "owed"
-
+export function DebtRow({ personName, amount, youOwe }: DebtRowProps) {
     return (
         <div className={`flex justify-between items-center p-3 rounded-lg border ${
-            isOwed
-                ? "bg-brand-success/10 border-brand-success/20"
-                : "bg-brand-error/10 border-brand-error/20"
+            youOwe
+                ? 'bg-brand-error/10 border-brand-error/20'
+                : 'bg-brand-success/10 border-brand-success/20'
         }`}>
-            <span className="font-medium text-brand-text">{person}</span>
-            <span className={`font-bold ${isOwed ? "text-brand-success" : "text-brand-error"}`} dir="ltr">
-        ₪{amount}
-      </span>
+            <span className="font-medium text-brand-text">
+                {youOwe ? `אתה חייב ל${personName}` : `${personName} חייב לך`}
+            </span>
+            <span className={`font-bold ${youOwe ? 'text-brand-error' : 'text-brand-success'}`} dir="ltr">
+                ₪{amount.toFixed(2)}
+            </span>
         </div>
-    )
+    );
 }
