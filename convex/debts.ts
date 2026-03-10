@@ -99,16 +99,15 @@ export const getEventDebts = query({
         const userId = await requireAuth(ctx);
         await requireEventAccess(ctx, args.eventId, userId);
 
-        const [drinks, participants] = await Promise.all([
-            ctx.db
-                .query('drinks')
-                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
-                .collect(),
-            ctx.db
-                .query('eventParticipants')
-                .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
-                .collect(),
-        ]);
+        const drinks = await ctx.db
+            .query('drinks')
+            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .collect();
+
+        const participants = await ctx.db
+            .query('eventParticipants')
+            .withIndex('by_event', (q) => q.eq('eventId', args.eventId))
+            .collect();
 
         // Not enough participants or no drinks — nothing to settle
         if (participants.length < 2 || drinks.length === 0) return [];
