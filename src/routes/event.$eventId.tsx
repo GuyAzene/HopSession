@@ -235,7 +235,7 @@ function RouteComponent() {
                             ) : (
                                 debts
                                     .filter(d => d.from === currentUserId || d.to === currentUserId)
-                                    .map((d, i) => {
+                                    .map((d: (typeof debts)[number], i) => {
                                         const youOwe = d.from === currentUserId;
                                         const otherPersonId = youOwe ? d.to : d.from;
                                         return (
