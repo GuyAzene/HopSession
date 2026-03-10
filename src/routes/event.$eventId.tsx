@@ -1,8 +1,11 @@
 import { useState, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from "convex/react"
+import type { FunctionReturnType } from "convex/server"
 import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
+
+type EventDebt = FunctionReturnType<typeof api.debts.getEventDebts>[number]
 import { Loader2, Beer, Receipt, Plus, LogOut } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { BeerCard } from "@/components/beer-card"
@@ -230,12 +233,12 @@ function RouteComponent() {
                         <p className="text-brand-text/60 text-sm">סיכום ביניים של ההוצאות והחובות למפגש זה.</p>
 
                         <div className="flex flex-col gap-3 mt-2">
-                            {debts.filter((d: (typeof debts)[number]) => d.from === currentUserId || d.to === currentUserId).length === 0 ? (
+                            {debts.filter((d: EventDebt) => d.from === currentUserId || d.to === currentUserId).length === 0 ? (
                                 <p className="text-sm text-brand-text/50">אין חובות — הכל מסודר!</p>
                             ) : (
                                 debts
-                                    .filter((d: (typeof debts)[number]) => d.from === currentUserId || d.to === currentUserId)
-                                    .map((d: (typeof debts)[number], i) => {
+                                    .filter((d: EventDebt) => d.from === currentUserId || d.to === currentUserId)
+                                    .map((d: EventDebt, i: number) => {
                                         const youOwe = d.from === currentUserId;
                                         const otherPersonId = youOwe ? d.to : d.from;
                                         return (
