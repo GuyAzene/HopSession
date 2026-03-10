@@ -171,7 +171,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                             </Popover>
                         </div>
 
-                        <div className="flex flex-col gap-1.5 overflow-hidden">
+                        <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-medium text-brand-text">שעה</label>
                             <Input
                                 type="time"
@@ -179,7 +179,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                                 value={time}
                                 onChange={(event) => setTime(event.target.value)}
                                 dir="ltr"
-                                className="border-brand-text/20 focus-visible:ring-brand-blue text-center text-sm w-full px-1"
+                                className="border-brand-text/20 focus-visible:ring-brand-blue text-center h-9 px-2"
                             />
                         </div>
                     </div>

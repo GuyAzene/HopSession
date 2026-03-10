@@ -152,7 +152,7 @@ export function CreateEventDialog() {
                                 </Popover>
                             </Field>
 
-                            <Field className="w-24 shrink-0 overflow-hidden">
+                            <Field className="w-24 shrink-0">
                                 <FieldLabel htmlFor="eventTime" className="text-brand-text text-center">שעה</FieldLabel>
                                 <Input
                                     type="time"
@@ -161,7 +161,7 @@ export function CreateEventDialog() {
                                     value={eventTime}
                                     onChange={(e) => setEventTime(e.target.value)}
                                     dir="ltr"
-                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center text-sm px-1 w-full"
+                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center h-9 px-2"
                                 />
                             </Field>
                         </div>
