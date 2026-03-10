@@ -127,7 +127,7 @@ export function CreateEventDialog() {
                                         <Button
                                             variant="outline"
                                             className={cn(
-                                                "w-full justify-start text-right font-normal border-brand-text/20 hover:bg-brand-text/5",
+                                                "h-10 w-full justify-start text-right font-normal border-brand-text/20 hover:bg-brand-text/5",
                                                 "bg-brand-surface",
                                                 !eventDate ? "text-brand-text/50" : "text-brand-text"
                                             )}
@@ -161,7 +161,7 @@ export function CreateEventDialog() {
                                     value={eventTime}
                                     onChange={(e) => setEventTime(e.target.value)}
                                     dir="ltr"
-                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center h-9 px-2"
+                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center h-10 px-2"
                                 />
                             </Field>
                         </div>

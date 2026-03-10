@@ -191,8 +191,10 @@ function RouteComponent() {
                     </div>
 
                     {/* מובייל: גובה קבוע כדי שה-ScrollArea יתנהג כ-scroll container ולא יגדל לאינסוף.
-                        דסקטופ: max-height דינמי לפי הויופורט */}
-                    <ScrollArea className="h-[45vh] lg:h-[calc(100vh-20rem)] rounded-2xl border border-brand-text/10 bg-brand-surface p-3 sm:p-6 shadow-sm" dir="rtl">
+                        דסקטופ: max-height דינמי לפי הויופורט
+                        Wrapper div holds the rounded border so cards at top/bottom aren't clipped by ScrollArea's viewport */}
+                    <div className="rounded-2xl border border-brand-text/10 bg-brand-surface shadow-sm overflow-hidden">
+                    <ScrollArea className="h-[45vh] lg:h-[calc(100vh-20rem)] p-3 sm:p-6" dir="rtl">
                         <div className="flex flex-col gap-4 pl-3 sm:pl-5">
 
                             {drinks.length === 0 ? (
@@ -213,6 +215,7 @@ function RouteComponent() {
 
                         </div>
                     </ScrollArea>
+                    </div>
                 </div>
 
                 {/* --- אזור 2: סיידבאר התחשבנות (תופס עמודה 1) --- */}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation } from 'convex/react';
+import { he } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Loader2, Settings2, Trash2 } from 'lucide-react';
 
 import { api } from '../../convex/_generated/api';
@@ -157,7 +158,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                                     <Button
                                         variant="outline"
                                         className={cn(
-                                            'justify-start border-brand-text/20 hover:bg-brand-text/5',
+                                            'h-10 justify-start border-brand-text/20 hover:bg-brand-text/5',
                                             date ? 'text-brand-text' : 'text-brand-text/50'
                                         )}
                                     >
@@ -166,7 +167,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent align="start" className="bg-brand-surface border-brand-text/10 p-0 w-auto">
-                                    <Calendar mode="single" selected={date} onSelect={setDate} dir="rtl" />
+                                    <Calendar mode="single" selected={date} onSelect={setDate} locale={he} dir="rtl" />
                                 </PopoverContent>
                             </Popover>
                         </div>
@@ -179,7 +180,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                                 value={time}
                                 onChange={(event) => setTime(event.target.value)}
                                 dir="ltr"
-                                className="border-brand-text/20 focus-visible:ring-brand-blue text-center h-9 px-2"
+                                className="border-brand-text/20 focus-visible:ring-brand-blue text-center h-10 px-2"
                             />
                         </div>
                     </div>
