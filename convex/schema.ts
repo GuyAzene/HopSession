@@ -36,7 +36,7 @@ const schema = defineSchema({
         beerImageURL: v.optional(v.string()),            //untapped added
         untappdLink: v.optional(v.string()),             //untapped added
         price: v.number(),                               //manually added
-        consumers: v.array(v.id("users")),    //auto added
+        consumers: v.array(v.id("users")),    //auto added — currently only set to [payerId] on creation; update via a future "markConsumed" mutation for cost-splitting
     })
         .index("by_event", ["eventId"])
         .index("by_event_and_payer", ["eventId", "payerId"]),
