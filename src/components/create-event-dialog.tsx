@@ -94,7 +94,7 @@ export function CreateEventDialog() {
                 </Button>
             </DialogTrigger>
 
-            <DialogContent dir="rtl" className="sm:max-w-[425px] bg-brand-surface border-brand-text/10 shadow-lg">
+            <DialogContent dir="rtl" className="sm:max-w-[425px] bg-brand-surface border-brand-text/10 shadow-lg" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <DialogHeader>
                     <DialogTitle className="text-xl text-brand-text">יצירת מפגש טעימות</DialogTitle>
                     <DialogDescription className="text-brand-text/60">
@@ -152,7 +152,7 @@ export function CreateEventDialog() {
                                 </Popover>
                             </Field>
 
-                            <Field className="w-24 shrink-0">
+                            <Field className="w-24 shrink-0 overflow-hidden">
                                 <FieldLabel htmlFor="eventTime" className="text-brand-text text-center">שעה</FieldLabel>
                                 <Input
                                     type="time"
@@ -161,7 +161,7 @@ export function CreateEventDialog() {
                                     value={eventTime}
                                     onChange={(e) => setEventTime(e.target.value)}
                                     dir="ltr"
-                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center px-2"
+                                    className="border-brand-text/20 focus-visible:ring-brand-blue bg-transparent text-brand-text text-center text-sm px-1 w-full"
                                 />
                             </Field>
                         </div>

@@ -190,9 +190,10 @@ function RouteComponent() {
                         </div>
                     </div>
 
-                    {/* Dynamic height instead of hardcoded h-150 */}
-                    <ScrollArea className="max-h-[calc(100vh-16rem)] rounded-2xl border border-brand-text/10 bg-brand-surface p-6 shadow-sm" dir="rtl">
-                        <div className="flex flex-col gap-4 pl-5">
+                    {/* מובייל: גובה קבוע כדי שה-ScrollArea יתנהג כ-scroll container ולא יגדל לאינסוף.
+                        דסקטופ: max-height דינמי לפי הויופורט */}
+                    <ScrollArea className="h-[45vh] lg:h-auto lg:max-h-[calc(100vh-20rem)] rounded-2xl border border-brand-text/10 bg-brand-surface p-3 sm:p-6 shadow-sm" dir="rtl">
+                        <div className="flex flex-col gap-4 pl-3 sm:pl-5">
 
                             {drinks.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center text-center py-20 gap-4 opacity-50">

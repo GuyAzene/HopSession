@@ -161,7 +161,7 @@ export function AddDrinkDialog({ eventId, isOpen, onClose }: AddDrinkDialogProps
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent dir="rtl" className="sm:max-w-[425px] bg-brand-surface border-brand-text/10 shadow-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent dir="rtl" className="sm:max-w-[425px] bg-brand-surface border-brand-text/10 shadow-lg max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <DialogHeader>
                     <DialogTitle className="text-xl text-brand-text">הוספת בירה למפגש</DialogTitle>
                     <DialogDescription className="text-brand-text/60">

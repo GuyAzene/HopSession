@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useMutation } from 'convex/react';
-import { MoreVertical, PencilLine, Trash2 } from 'lucide-react';
+import { MoreVertical, PencilLine, Trash2, Star } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Beer } from "lucide-react";
@@ -45,6 +45,14 @@ export function BeerCard({ beer, payerName, canManage }: BeerCardProps) {
     }
     if (beer.abv !== undefined) {
         details.push(<span key="abv" dir="ltr">{beer.abv}%</span>);
+    }
+    if (beer.rating !== undefined) {
+        details.push(
+            <span key="rating" className="flex items-center gap-0.5">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                <span dir="ltr">{beer.rating.toFixed(2)}</span>
+            </span>
+        );
     }
 
     const handleSave = async () => {
@@ -92,7 +100,7 @@ export function BeerCard({ beer, payerName, canManage }: BeerCardProps) {
 
     return (
         <div className="rounded-xl border border-brand-text/10 bg-brand-surface px-4 py-3 transition-all hover:border-brand-text/25">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-3 flex-1">
                     <Avatar className="h-11 w-11 border border-brand-text/10 bg-white shadow-sm shrink-0 mt-0.5">
                         <AvatarImage
@@ -111,18 +119,18 @@ export function BeerCard({ beer, payerName, canManage }: BeerCardProps) {
                             <span className="rounded-full bg-brand-text/5 px-2 py-0.5 text-xs text-brand-text/70">{payerName}</span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-brand-text/60">
+                        <div className="flex flex-wrap items-center gap-y-0.5 text-xs text-brand-text/60">
                             {details.map((detail, index) => (
-                                <span key={index} className="flex items-center gap-x-2">
+                                <Fragment key={index}>
+                                    {index > 0 && <span className="mx-1.5 text-brand-text/30" aria-hidden>•</span>}
                                     {detail}
-                                    {index < details.length - 1 && <span className="text-brand-text/30">•</span>}
-                                </span>
+                                </Fragment>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     <p className="rounded-full border border-brand-text/10 bg-brand-bg px-3 py-1 text-sm font-semibold text-brand-text" dir="ltr">
                         ₪{beer.price.toFixed(2)}
                     </p>

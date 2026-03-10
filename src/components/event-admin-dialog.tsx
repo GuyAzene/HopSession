@@ -130,7 +130,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                 </Button>
             </DialogTrigger>
 
-            <DialogContent dir="rtl" className="sm:max-w-[460px] bg-brand-surface border-brand-text/10">
+            <DialogContent dir="rtl" className="sm:max-w-[460px] bg-brand-surface border-brand-text/10" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <DialogHeader>
                     <DialogTitle className="text-brand-text">ניהול מפגש</DialogTitle>
                     <DialogDescription className="text-brand-text/60">
@@ -149,7 +149,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                         />
                     </div>
 
-                    <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+                    <div className="grid grid-cols-[1fr_6rem] gap-3 items-end">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-medium text-brand-text">תאריך</label>
                             <Popover>
@@ -171,7 +171,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                             </Popover>
                         </div>
 
-                        <div className="flex flex-col gap-1.5 w-[110px]">
+                        <div className="flex flex-col gap-1.5 overflow-hidden">
                             <label className="text-sm font-medium text-brand-text">שעה</label>
                             <Input
                                 type="time"
@@ -179,7 +179,7 @@ export function EventAdminDialog({ eventId, eventName, eventDate, triggerClassNa
                                 value={time}
                                 onChange={(event) => setTime(event.target.value)}
                                 dir="ltr"
-                                className="border-brand-text/20 focus-visible:ring-brand-blue text-center"
+                                className="border-brand-text/20 focus-visible:ring-brand-blue text-center text-sm w-full px-1"
                             />
                         </div>
                     </div>
