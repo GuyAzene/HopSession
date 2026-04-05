@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Notes
+
+- `notes.md` is a gitignored local notes file for future ideas, follow-ups, cleanup opportunities, and low-priority risks.
+- Read `notes.md` when the user asks for future work ideas, non-urgent improvements, cleanup opportunities, or general product/technical considerations.
+- Do not treat `notes.md` as a changelog or source of truth; it is lightweight planning context.
+
 ## Commands
 
 ```bash

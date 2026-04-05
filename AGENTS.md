@@ -7,6 +7,12 @@ Guidance for agentic coding tools working in `/Users/guy/Developer/HopSession`.
 Read `CLAUDE.md` before making changes. It is the primary repo-specific guide.
 This repo does not contain `.cursorrules`, `.cursor/rules/`, or `.github/copilot-instructions.md`.
 
+## Working Notes
+
+- `notes.md` is a gitignored local notes file for future ideas, follow-ups, cleanup opportunities, and low-priority risks.
+- Read `notes.md` when the user asks for future features, cleanup ideas, tech-debt considerations, or general next-step brainstorming.
+- Do not treat `notes.md` as a changelog or source of truth; it is lightweight planning context.
+
 ## Project Snapshot
 
 HopSession is a private beer-tasting event organizer with shared cost splitting.
@@ -240,6 +246,7 @@ When touching `convex/drinks.ts`:
 
 When making changes:
 - read `CLAUDE.md` first
+- read `notes.md` too when the task is about future ideas, follow-ups, or non-urgent improvements
 - inspect adjacent files before inventing patterns
 - prefer existing repo conventions over generic defaults
 - avoid introducing a test framework unless explicitly requested

@@ -1,12 +1,12 @@
-import React, { Suspense } from 'react'
-import {Outlet, createRootRouteWithContext, useRouterState} from '@tanstack/react-router'
-import { useConvexAuth } from "convex/react"
+import React, { Suspense, useEffect } from 'react';
+import { Outlet, createRootRouteWithContext, useRouterState } from '@tanstack/react-router';
+import { useConvexAuth } from 'convex/react';
 import type { ConvexReactClient } from 'convex/react'
 
-import { WelcomeScreen } from "@/components/welcome-screen"
-import { Navbar } from "@/components/navbar"
-import { ErrorBoundary } from "@/components/error-boundary"
-import { BeerLoadingScreen } from '@/components/beer-loading-screen'
+import { BeerLoadingScreen } from '@/components/beer-loading-screen';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Navbar } from '@/components/navbar';
+import { router } from '@/main';
 
 // טוען את ה-Devtools רק אם אנחנו לא בסביבת פרודקשן (חוסך המון משקל מהקוד החי!)
 const TanStackRouterDevtools = import.meta.env.PROD
@@ -23,25 +23,55 @@ interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
     component: RootComponent,
-})
+});
+
 function RootComponent() {
     const { isAuthenticated, isLoading } = useConvexAuth();
     const pathname = useRouterState({ select: (s) => s.location.pathname });
+    const isLoginRoute = pathname === '/login';
+    const shouldRedirectToLogin = !isLoading && !isAuthenticated && !isLoginRoute;
+    const shouldRedirectToHome = !isLoading && isAuthenticated && isLoginRoute;
+
+    useEffect(() => {
+        if (!shouldRedirectToLogin) {
+            return;
+        }
+
+        void router.navigate({
+            to: '/login',
+            replace: true,
+        });
+    }, [shouldRedirectToLogin]);
+
+    useEffect(() => {
+        if (!shouldRedirectToHome) {
+            return;
+        }
+
+        void router.navigate({
+            to: '/',
+            replace: true,
+        });
+    }, [shouldRedirectToHome]);
 
     if (isLoading) {
         return <BeerLoadingScreen />;
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated && isLoginRoute) {
         return (
-            <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
-                <WelcomeScreen />
+            <div className="min-h-screen bg-brand-bg font-sans text-brand-text">
+                <Outlet />
             </div>
         );
     }
 
+    if (shouldRedirectToLogin || shouldRedirectToHome) {
+        return null;
+    }
+
     return (
-        <div className="min-h-screen bg-brand-bg text-brand-text font-sans flex flex-col">
+        <div className="flex min-h-screen flex-col bg-brand-bg font-sans text-brand-text">
             {/* Navbar fetches its own user via useCurrentUser hook */}
             <Navbar />
 
@@ -56,5 +86,5 @@ function RootComponent() {
                 <TanStackRouterDevtools position="bottom-right" />
             </Suspense>
         </div>
-    )
+    );
 }
