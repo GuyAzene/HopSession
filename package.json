@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@better-auth/core": "1.6.30",
+    "@better-auth/infra": "0.4.13",
     "@convex-dev/better-auth": "0.12.5",
     "@fontsource-variable/noto-sans-hebrew": "^5.2.8",
     "@radix-ui/react-direction": "^1.1.1",
