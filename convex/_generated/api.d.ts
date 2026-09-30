@@ -9,11 +9,15 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as authEnvironment from "../authEnvironment.js";
+import type * as authMigration from "../authMigration.js";
+import type * as authUser from "../authUser.js";
 import type * as debts from "../debts.js";
 import type * as drinks from "../drinks.js";
 import type * as events from "../events.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
+import type * as legacyAuthTables from "../legacyAuthTables.js";
 import type * as users from "../users.js";
 
 import type {
@@ -24,11 +28,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  authEnvironment: typeof authEnvironment;
+  authMigration: typeof authMigration;
+  authUser: typeof authUser;
   debts: typeof debts;
   drinks: typeof drinks;
   events: typeof events;
   helpers: typeof helpers;
   http: typeof http;
+  legacyAuthTables: typeof legacyAuthTables;
   users: typeof users;
 }>;
 
@@ -58,4 +66,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+};

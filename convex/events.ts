@@ -1,7 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import {mutation, query} from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAppUserId } from './authUser';
 import { requireAuth, requireEventAccess } from "./helpers";
 
 const MAX_EVENTS_PER_FEED = 50;
@@ -58,7 +58,7 @@ export const create = mutation({
 export const getMyEvents = query({
     args: {},
     handler: async (ctx) => {
-        const userId = await getAuthUserId(ctx);
+        const userId = await getAppUserId(ctx);
         if (userId === null) return [];
 
         // שלב א': שולפים את כל מסמכי ההשתתפות של המשתמש (סופר מהיר בזכות האינדקס)

@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { useAuthActions } from "@convex-dev/auth/react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,20 +7,36 @@ import { Input } from "@/components/ui/input"
 import { FormMessage } from "@/components/form-message"
 import { SocialButton } from "@/components/social-button"
 import { getErrorMessage } from "@/lib/errors"
+import { authClient } from '@/lib/auth-client'
+import { getAuthCallbackUrl, getAuthErrorCallbackUrl } from '@/lib/auth-redirect'
 
 type Message = { type: "success" | "error"; text: string }
 
-export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
-  const { signIn } = useAuthActions()
+interface LoginFormProps extends React.ComponentProps<'div'> {
+  returnTo?: string
+  initialError?: string
+}
+
+export function LoginForm({ className, returnTo = '/', initialError, ...props }: LoginFormProps) {
   const [email, setEmail] = useState("")
   const [isSending, setIsSending] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [message, setMessage] = useState<Message | null>(null)
+  const [message, setMessage] = useState<Message | null>(() => initialError
+    ? { type: 'error', text: 'ההתחברות לא הושלמה. ייתכן שהבקשה בוטלה או שלינק ההתחברות פג תוקף. נסו שוב.' }
+    : null)
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true)
+    setMessage(null)
     try {
-      await signIn("google")
+      const result = await authClient.signIn.social({
+        provider: 'google',
+        callbackURL: getAuthCallbackUrl(returnTo),
+        errorCallbackURL: getAuthErrorCallbackUrl(returnTo),
+      })
+      if (result.error) {
+        setMessage({ type: 'error', text: 'ההתחברות עם גוגל נכשלה. נסה שוב.' })
+      }
       // Note: on successful OAuth, the page redirects — code below this line won't run
     } catch (error) {
       console.error("Google sign-in failed:", error)
@@ -38,7 +53,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     setIsSending(true)
     setMessage(null)
     try {
-      await signIn("resend", { email })
+      const result = await authClient.signIn.magicLink({
+        email: email.trim().toLowerCase(),
+        callbackURL: getAuthCallbackUrl(returnTo),
+        errorCallbackURL: getAuthErrorCallbackUrl(returnTo),
+      })
+      if (result.error) {
+        setMessage({ type: 'error', text: 'משהו השתבש בעת שליחת המייל. אנא נסו שוב.' })
+        return
+      }
       setMessage({ type: "success", text: "לינק התחברות נשלח! בדקו את תיבת המייל שלכם." })
     } catch (error) {
       console.error("Magic link sign-in failed:", error)

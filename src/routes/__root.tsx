@@ -6,6 +6,7 @@ import type { ConvexReactClient } from 'convex/react'
 import { BeerLoadingScreen } from '@/components/beer-loading-screen';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Navbar } from '@/components/navbar';
+import { getSafeReturnTo } from '@/lib/auth-redirect';
 import { router } from '@/main';
 
 // טוען את ה-Devtools רק אם אנחנו לא בסביבת פרודקשן (חוסך המון משקל מהקוד החי!)
@@ -28,6 +29,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
     const { isAuthenticated, isLoading } = useConvexAuth();
     const pathname = useRouterState({ select: (s) => s.location.pathname });
+    const loginSearch = useRouterState({ select: (s) => s.location.search });
     const isLoginRoute = pathname === '/login';
     const shouldRedirectToLogin = !isLoading && !isAuthenticated && !isLoginRoute;
     const shouldRedirectToHome = !isLoading && isAuthenticated && isLoginRoute;
@@ -39,6 +41,10 @@ function RootComponent() {
 
         void router.navigate({
             to: '/login',
+            search: {
+                returnTo: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+                error: undefined,
+            },
             replace: true,
         });
     }, [shouldRedirectToLogin]);
@@ -48,11 +54,12 @@ function RootComponent() {
             return;
         }
 
-        void router.navigate({
-            to: '/',
-            replace: true,
-        });
-    }, [shouldRedirectToHome]);
+        window.location.replace(getSafeReturnTo(
+            typeof loginSearch === 'object' && loginSearch !== null && 'returnTo' in loginSearch
+                ? loginSearch.returnTo
+                : undefined,
+        ));
+    }, [loginSearch, shouldRedirectToHome]);
 
     if (isLoading) {
         return <BeerLoadingScreen />;

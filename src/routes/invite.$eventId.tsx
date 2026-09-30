@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
-import { useMutation } from 'convex/react';
+import { useEffect, useMemo, useState } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useMutation, useQuery } from 'convex/react';
 import { AlertCircle, Loader2, UserRound } from 'lucide-react';
 
 import type { Id } from '../../convex/_generated/dataModel';
@@ -10,39 +10,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getErrorMessage } from '@/lib/errors';
 
 export const Route = createFileRoute('/invite/$eventId')({
-    beforeLoad: async ({ params, context }) => {
-        const { eventId } = params;
-        if (!eventId.trim()) {
-            throw new Error('קישור הזמנה לא תקין');
-        }
-
-        const convex = context.convex;
-        const invite = await convex.query(api.events.getInviteDetails, {
-            eventId: eventId as Id<'events'>,
-        });
-
-        if (invite.alreadyParticipant) {
-            throw redirect({
-                to: '/event/$eventId',
-                params: { eventId },
-            });
-        }
-
-        return { invite };
-    },
     component: RouteComponent,
 });
 
 function RouteComponent() {
     const navigate = useNavigate();
     const { eventId } = Route.useParams();
-    const { invite } = Route.useRouteContext();
+    const invite = useQuery(api.events.getInviteDetails, {
+        eventId: eventId as Id<'events'>,
+    });
     const join = useMutation(api.events.addParticipant);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     const formattedDate = useMemo(() => {
+        if (!invite) {
+            return '';
+        }
+
         return new Date(invite.date).toLocaleDateString('he-IL', {
             weekday: 'long',
             year: 'numeric',
@@ -51,7 +37,19 @@ function RouteComponent() {
             hour: '2-digit',
             minute: '2-digit',
         });
-    }, [invite.date]);
+    }, [invite]);
+
+    useEffect(() => {
+        if (!invite?.alreadyParticipant) {
+            return;
+        }
+
+        void navigate({
+            to: '/event/$eventId',
+            params: { eventId },
+            replace: true,
+        });
+    }, [eventId, invite?.alreadyParticipant, navigate]);
 
     const handleJoin = async () => {
         setIsSubmitting(true);
@@ -73,6 +71,10 @@ function RouteComponent() {
     const handleDecline = async () => {
         await navigate({ to: '/' });
     };
+
+    if (invite === undefined || invite.alreadyParticipant) {
+        return <Loader2 className="mx-auto mt-20 h-8 w-8 animate-spin text-brand-text" />;
+    }
 
     return (
         <div className="mx-auto mt-10 w-full max-w-xl px-4">

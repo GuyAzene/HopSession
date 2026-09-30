@@ -31,19 +31,20 @@ No test framework is configured.
 HopSession is a private beer-tasting event organizer with cost splitting (Splitwise for beer). The app is in Hebrew with RTL layout.
 
 **Frontend** (`src/`): React 19 + TypeScript, Vite, Tailwind v4, shadcn/ui
-**Backend** (`convex/`): Convex (serverless DB + backend), `@convex-dev/auth` for authentication
+**Backend** (`convex/`): Convex (serverless DB + backend), Better Auth via `@convex-dev/better-auth` for authentication
 **Routing**: TanStack Router with file-based routing — routes live in `src/routes/`, the route tree is auto-generated to `src/routeTree.gen.ts` (never edit manually)
 
 ### Data Flow
 
-The app is fully real-time via Convex. Components use `useQuery` for reactive reads and `useMutation`/`useAction` for writes. Auth state comes from `useConvexAuth`. The root route (`src/routes/__root.tsx`) handles auth gating — unauthenticated users see `WelcomeScreen`, authenticated users get `Navbar` + `<Outlet>`.
+The app is fully real-time via Convex. Components use `useQuery` for reactive reads and `useMutation`/`useAction` for writes. Auth state comes from `useConvexAuth`. The root route (`src/routes/__root.tsx`) redirects guests to `/login` while preserving a validated return destination; authenticated users get `Navbar` + `<Outlet>`. `ConvexBetterAuthProvider` wraps the app. Backend `getAppUserId` resolves a session-validated Better Auth identity to the original app `users` ID; `requireAuth` and `requireEventAccess` remain the shared access helpers.
 
 ### Database Schema (`convex/schema.ts`)
 
 - `events` — beer tasting sessions (name, date, ownerId, isSettled)
 - `eventParticipants` — join table with indexes `by_user`, `by_event`, `by_event_and_user`
 - `drinks` — beers consumed at an event (beerName, price, payerId, consumers[], optional Untappd metadata)
-- Auth tables injected via `authTables` from `@convex-dev/auth`
+- App `users` retain original IDs/profile fields, plus indexed `betterAuthId` and normalized `authEmail` mappings
+- Better Auth records live in its Convex component; legacy auth tables remain for rollback
 
 ### Untappd Integration
 
@@ -52,7 +53,12 @@ The app is fully real-time via Convex. Components use `useQuery` for reactive re
 ### Environment Variables
 
 - `VITE_CONVEX_URL` — Convex deployment URL (frontend, in `.env.local`)
+- `VITE_CONVEX_SITE_URL` — Convex HTTP auth URL (frontend)
+- Server: `SITE_URL`, `BETTER_AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_RESEND_KEY`
+- `AUTH_MIGRATION_COMPLETE` — authentication is disabled unless exactly `true`; see `docs/auth-migration.md` before enabling
 - `FIRECRAWL_API_KEY` — for Untappd scraping (set in Convex dashboard)
+
+See `docs/auth-migration.md` for the internal inventory/import commands, rollback requirements, and the standalone local integration rehearsal. Do not upgrade Better Auth to 1.7 with adapter 0.12.5.
 
 ## Code Style
 

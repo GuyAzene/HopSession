@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAppUserId } from './authUser';
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { ConvexError } from "convex/values";
@@ -7,7 +7,7 @@ import { ConvexError } from "convex/values";
 export async function requireAuth(
     ctx: QueryCtx | MutationCtx | ActionCtx
 ): Promise<Id<"users">> {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getAppUserId(ctx);
     if (!userId) throw new ConvexError("חובה להתחבר");
     return userId;
 }
