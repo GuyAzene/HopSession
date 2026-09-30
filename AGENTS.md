@@ -22,7 +22,7 @@ Stack:
 - React 19 + TypeScript + Vite
 - Tailwind CSS v4 + shadcn/ui
 - Convex backend and database
-- `@convex-dev/auth` for authentication
+- Better Auth via `@convex-dev/better-auth` for authentication
 - TanStack Router with file-based routing
 - Firecrawl + Cheerio for Untappd scraping in a Convex action
 
@@ -43,8 +43,8 @@ Important paths:
 
 - The app is real-time; Convex queries update the UI reactively.
 - Auth state comes from `useConvexAuth()`.
-- `src/routes/__root.tsx` gates the app: guests see `WelcomeScreen`, authenticated users get `Navbar` and routed content.
-- `src/main.tsx` wraps the app with `DirectionProvider dir="rtl"`, `ConvexAuthProvider`, and `RouterProvider`.
+- `src/routes/__root.tsx` gates the app: guests go to `/login` with a validated return destination, authenticated users get `Navbar` and routed content.
+- `src/main.tsx` wraps the app with `DirectionProvider dir="rtl"`, `ConvexBetterAuthProvider`, and `RouterProvider`.
 - Route files use `createFileRoute(...)`; the root route uses `createRootRouteWithContext(...)`.
 - TanStack Router generates the route tree automatically.
 
@@ -52,7 +52,8 @@ Schema highlights from `convex/schema.ts`:
 - `events` - beer tasting sessions
 - `eventParticipants` - join table between users and events
 - `drinks` - beers consumed within an event
-- auth tables are injected via `authTables`
+- app `users` keep original IDs and map to component identities with `betterAuthId` and normalized `authEmail`
+- Better Auth owns component auth tables; legacy auth tables remain explicitly defined for rollback
 
 ## Commands
 
@@ -100,6 +101,9 @@ For most changes:
 
 Known env vars:
 - `VITE_CONVEX_URL` - frontend Convex deployment URL, usually in `.env.local`
+- `VITE_CONVEX_SITE_URL` - frontend HTTP auth URL
+- Convex server: `SITE_URL`, `BETTER_AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_RESEND_KEY`
+- `AUTH_MIGRATION_COMPLETE` - auth stays closed unless exactly `true`; follow `docs/auth-migration.md` before enabling
 - `FIRECRAWL_API_KEY` - required by the Untappd scraping action
 
 Rules:
@@ -228,6 +232,7 @@ Frontend:
 
 Preserve existing patterns:
 - `requireAuth()` is the shared backend authentication gate
+- `getAppUserId()` validates the Better Auth session and resolves the original app user; do not cast a Better Auth identity directly to `Id<'users'>`
 - `requireEventAccess()` checks event existence plus participant or owner access
 - frontend auth gating lives in `src/routes/__root.tsx`
 - invite flow preloads event details and redirects users already in the event

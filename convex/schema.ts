@@ -1,9 +1,20 @@
 import { defineSchema, defineTable } from "convex/server";
-import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import { legacyAuthTables } from './legacyAuthTables';
 
 const schema = defineSchema({
-    ...authTables,
+    ...legacyAuthTables,
+    users: defineTable({
+        name: v.optional(v.string()), image: v.optional(v.string()),
+        email: v.optional(v.string()), emailVerificationTime: v.optional(v.number()),
+        phone: v.optional(v.string()), phoneVerificationTime: v.optional(v.number()),
+        isAnonymous: v.optional(v.boolean()),
+        betterAuthId: v.optional(v.string()),
+        authEmail: v.optional(v.string()),
+    }).index('email', ['email'])
+        .index('phone', ['phone'])
+        .index('by_better_auth_id', ['betterAuthId'])
+        .index('by_auth_email', ['authEmail']),
 
     events: defineTable({
         name: v.string(),

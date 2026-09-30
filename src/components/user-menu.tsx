@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { BadgeCheckIcon, LogOutIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { CurrentUser } from "@/lib/types";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { getErrorMessage } from "@/lib/errors";
+import { authClient } from '@/lib/auth-client';
 
 import {
     DropdownMenu,
@@ -21,7 +21,6 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user }: UserMenuProps) {
-    const { signOut } = useAuthActions();
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
 
@@ -69,9 +68,13 @@ export function UserMenu({ user }: UserMenuProps) {
                     <DropdownMenuSeparator className="bg-brand-text/10" />
 
                     <DropdownMenuItem
-                        onClick={() => signOut().catch((err) => {
-                            console.error("Sign out failed:", err);
-                            setSignOutError(getErrorMessage(err, "ההתנתקות נכשלה. נסה שוב."));
+                        onClick={() => authClient.signOut().then((result) => {
+                            if (result.error) {
+                                setSignOutError('ההתנתקות נכשלה. נסה שוב.');
+                            }
+                        }).catch((error) => {
+                            console.error("Sign out failed:", error);
+                            setSignOutError(getErrorMessage(error, "ההתנתקות נכשלה. נסה שוב."));
                         })}
                         className="text-brand-error focus:bg-brand-error/10 focus:text-brand-error cursor-pointer font-medium"
                     >

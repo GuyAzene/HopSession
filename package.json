@@ -10,12 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@auth/core": "^0.37.0",
-    "@convex-dev/auth": "^0.0.90",
+    "@convex-dev/better-auth": "0.12.5",
     "@fontsource-variable/noto-sans-hebrew": "^5.2.8",
     "@radix-ui/react-direction": "^1.1.1",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-router": "^1.163.3",
+    "better-auth": "1.6.30",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -8,7 +8,7 @@ HopSession is a private app for friends to create beer-tasting events, add drink
 - Routing: TanStack Router
 - Styling: Tailwind CSS v4 + shadcn/ui
 - Backend + DB: Convex
-- Auth: Convex Auth (Google + Magic Link)
+- Auth: Better Auth on Convex (Google + Magic Link)
 
 ## Current Features
 
@@ -28,12 +28,14 @@ HopSession is a private app for friends to create beer-tasting events, add drink
 npm install
 ```
 
-2. Set environment variables:
+2. Copy `.env.example` to `.env.local` and select your Convex deployment. Set server secrets on the Convex deployment:
 
 ```bash
-VITE_CONVEX_URL=your-convex-deployment-url
-FIRECRAWL_API_KEY=your-firecrawl-api-key
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+VITE_CONVEX_SITE_URL=https://your-deployment.convex.site
 ```
+
+See [authentication setup and migration](docs/auth-migration.md) for Google/Resend credentials, trusted origins, and the required migration gate. Existing deployments must complete the account import before enabling authentication.
 
 3. Start Convex backend:
 

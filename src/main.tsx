@@ -1,10 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
+import type { AuthClient } from '@convex-dev/better-auth/react';
 import { ConvexReactClient } from "convex/react";
 import { DirectionProvider } from "@radix-ui/react-direction";
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 
+import { authClient } from '@/lib/auth-client';
 // ייבוא עץ הניתובים שנוצר אוטומטית על ידי הפלאגין של TanStack
 import { routeTree } from './routeTree.gen';
 import "./index.css";
@@ -34,9 +36,13 @@ if (!rootElement.innerHTML) {
     root.render(
         <StrictMode>
             <DirectionProvider dir="rtl">
-                <ConvexAuthProvider client={convex}>
+                <ConvexBetterAuthProvider
+                    client={convex}
+                    // The provider's AuthClient type does not retain additional Better Auth plugins.
+                    authClient={authClient as unknown as AuthClient}
+                >
                     <RouterProvider router={router} context={{convex}}/>
-                </ConvexAuthProvider>
+                </ConvexBetterAuthProvider>
             </DirectionProvider>
         </StrictMode>
     );
