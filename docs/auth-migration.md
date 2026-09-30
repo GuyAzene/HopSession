@@ -1,6 +1,6 @@
 # Better Auth migration
 
-HopSession uses `@convex-dev/better-auth@0.12.5` and `better-auth@1.6.30` with Google and Resend magic links. The adapter requires Better Auth `<1.7.0`; do not upgrade Better Auth independently. The lockfile resolves Convex to 1.45.0.
+HopSession uses `@convex-dev/better-auth@0.12.5` and `better-auth@1.6.33` with Google and Resend magic links. The adapter requires Better Auth `<1.7.0`; do not upgrade Better Auth independently. The lockfile pins Convex to 1.46.0.
 
 Better Auth stores authentication in its Convex component. The app retains the original `users` IDs and profile fields. `users.betterAuthId` maps identities; `authEmail` is the normalized email used to prevent duplicate provisioning. Events, participants, drinks, and debt references never change. New users are provisioned by a transactional trigger. Existing names and phone numbers remain app-owned.
 
@@ -105,8 +105,18 @@ References: [Convex React integration](https://labs.convex.dev/better-auth/frame
 
 The free Better Auth Starter dashboard is optional. Add `BETTER_AUTH_API_KEY` only to the intended Convex deployment to enable it; leaving it unset keeps the hosted dashboard disconnected. Connect the dashboard to the deployment's `https://<deployment>.convex.site` base URL and `/api/auth` path. Never put the key in `VITE_*` variables or a committed file. Remove this optional variable to disconnect it without changing authentication credentials or sessions.
 
-The integration pins `@better-auth/infra` to 0.4.13 and `@better-auth/core` to the existing Better Auth version 1.6.30. `authDashboard.ts` removes API keys from the dashboard's public plugin configuration and scopes deferred database after-hooks to their captured endpoint context. The HTTP handler awaits outstanding audit work because Convex ends background work when an action returns. Audit export is best effort and uses the infrastructure client's timeout; an infrastructure outage must not prevent ordinary login or logout.
+The integration pins `@better-auth/infra` to 0.4.13 and `@better-auth/core` to the compatible Better Auth version 1.6.33. `authDashboard.ts` removes API keys from the dashboard's public plugin configuration and scopes deferred database after-hooks to their captured endpoint context. The HTTP handler awaits outstanding audit work because Convex ends background work when an action returns. Audit export is best effort and uses the infrastructure client's timeout; an infrastructure outage must not prevent ordinary login or logout.
 
 Activity tracking and managed directory sync are disabled, so no additional component schema is needed. Google, Resend, trusted frontend origins, user mapping and migration gates stay in the application. Hosted dashboard access gives Better Auth infrastructure access to authentication users, sessions and audit metadata, including administrative endpoints; it is not a read-only integration. Application profiles are separate from component auth profiles. Do not use dashboard user deletion or profile changes without checking their impact on application records. Start with browsing users, sessions and audit logs. No dashboard mutation tests should run against production.
 
 Starter pricing was checked on 2026-09-30: $0/month, one seat, 10,000 audit logs/month with one-day retention, and 1,000 security detections/month. Do not enable paid plans, directory sync, replacement email delivery or security plugins as part of this integration. See [current pricing](https://better-auth.com/pricing) before changing scope.
+
+### Compatible maintenance update (2026-09-30)
+
+Convex is pinned to 1.46.0, and Better Auth/Core to the latest compatible 1.6 maintenance release, 1.6.33. Adapter 0.12.5 still requires Better Auth below 1.7; the dashboard's 1.7.6 upgrade notice is not a supported upgrade for this adapter.
+
+The app declares its name as HopSession. OAuth failures fall back to the configured frontend's `/login` page; a request-specific error callback retains a validated invite return destination. The login form displays the existing Hebrew error message.
+
+Experimental joins remain disabled because the Convex adapter explicitly does not support them. The IP-header insight remains unresolved: Cloudflare Pages serves the frontend, while authentication goes directly to Convex. Do not trust `cf-connecting-ip` or other client-supplied headers without verifying the Convex edge's sanitization guarantees.
+
+Fresh anonymous local rehearsals passed with these versions, including repeat imports, preserved user IDs/profiles/business records, debt results, conflict rejection, access restrictions, expiry/reuse and logout. A separate local dashboard mock verified authorization, audit events and outage behavior. Invalid-state OAuth callbacks now return to the frontend login page and invite error callbacks retain their destination. No Google requests or email were sent during these local checks. Live provider behavior requires separate browser verification.

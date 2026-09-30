@@ -51,9 +51,13 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
         }
     };
     const auth = betterAuth({
+        appName: 'HopSession',
         baseURL: requireEnv('CONVEX_SITE_URL'),
         secret: requireEnv('BETTER_AUTH_SECRET'),
         trustedOrigins: getAuthTrustedOrigins(),
+        onAPIError: {
+            errorURL: new URL('/login', siteUrl).toString(),
+        },
         database: authComponent.adapter(ctx),
         socialProviders: {
             google: {
