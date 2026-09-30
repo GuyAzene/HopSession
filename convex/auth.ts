@@ -7,6 +7,7 @@ import { magicLink } from 'better-auth/plugins/magic-link';
 import { components, internal } from './_generated/api';
 import type { DataModel } from './_generated/dataModel';
 import authConfig from './auth.config';
+import { safeDashboardPlugin } from './authDashboard';
 import { authIsReady, getAuthTrustedOrigins, normalizeAuthEmail, requireEnv } from './authEnvironment';
 
 const authFunctions: AuthFunctions = internal.auth;
@@ -39,7 +40,17 @@ export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 export function createAuth(ctx: GenericCtx<DataModel>) {
     const siteUrl = requireEnv('SITE_URL');
-    return betterAuth({
+    const dashboardApiKey = process.env.BETTER_AUTH_API_KEY;
+    const backgroundTasks: Promise<unknown>[] = [];
+    let drainedTasks = 0;
+    const flushBackgroundTasks = async () => {
+        while (drainedTasks < backgroundTasks.length) {
+            const batch = backgroundTasks.slice(drainedTasks);
+            drainedTasks = backgroundTasks.length;
+            await Promise.allSettled(batch);
+        }
+    };
+    const auth = betterAuth({
         baseURL: requireEnv('CONVEX_SITE_URL'),
         secret: requireEnv('BETTER_AUTH_SECRET'),
         trustedOrigins: getAuthTrustedOrigins(),
@@ -54,6 +65,15 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
             accountLinking: { enabled: true, allowDifferentEmails: false },
         },
         rateLimit: { enabled: true, storage: 'database' },
+        advanced: dashboardApiKey ? {
+            backgroundTasks: {
+                handler: (task) => {
+                    backgroundTasks.push(task.catch(() => {
+                        console.warn('Better Auth dashboard background task failed');
+                    }));
+                },
+            },
+        } : undefined,
         hooks: {
             before: createAuthMiddleware(async (request) => {
                 if (!authIsReady() && request.path !== '/convex/jwks') {
@@ -64,6 +84,7 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
             }),
         },
         plugins: [
+            ...(dashboardApiKey ? [safeDashboardPlugin(dashboardApiKey, flushBackgroundTasks)] : []),
             magicLink({
                 expiresIn: 15 * 60,
                 storeToken: 'hashed',
@@ -92,4 +113,18 @@ export function createAuth(ctx: GenericCtx<DataModel>) {
             convex({ authConfig }),
         ],
     });
+
+    if (!dashboardApiKey) return auth;
+
+    return {
+        ...auth,
+        handler: async (...args: Parameters<typeof auth.handler>) => {
+            try {
+                return await auth.handler(...args);
+            } finally {
+                // Convex stops outstanding work when the HTTP action returns.
+                await flushBackgroundTasks();
+            }
+        },
+    };
 }

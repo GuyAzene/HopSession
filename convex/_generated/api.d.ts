@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as authDashboard from "../authDashboard.js";
 import type * as authEnvironment from "../authEnvironment.js";
 import type * as authMigration from "../authMigration.js";
 import type * as authUser from "../authUser.js";
@@ -28,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  authDashboard: typeof authDashboard;
   authEnvironment: typeof authEnvironment;
   authMigration: typeof authMigration;
   authUser: typeof authUser;
